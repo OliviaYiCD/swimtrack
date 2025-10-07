@@ -3,6 +3,9 @@ import { getSupabaseServer } from "@/lib/supabaseServer";
 import SaveButton from "@/components/SaveButton";
 
 export default async function SwimmerProfile({ params }) {
+  // ✅ await params to avoid Next.js sync-dynamic-apis error
+  const { id } = await params;
+
   const supabase = getSupabaseServer();
 
   // Current user
@@ -14,7 +17,7 @@ export default async function SwimmerProfile({ params }) {
   const { data: swimmer } = await supabase
     .from("swimmers")
     .select("id, full_name, gender, age_years")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!swimmer) {

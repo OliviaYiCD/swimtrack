@@ -1,131 +1,76 @@
 // app/page.jsx
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+import AvatarInitial from "@/components/AvatarInitial";
+import SearchBar from "@/components/SearchBar";
+import SaveButton from "@/components/SaveButton";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+export default async function Home({ searchParams }) {
+  const sp = await searchParams;                // 👈 await it
+  const q = (sp?.q ?? "").trim();
 
-  // Debounced search
-  useEffect(() => {
-    let active = true;
-    const timer = setTimeout(async () => {
-      setErr("");
-      setLoading(true);
-      try {
-        // If no query, show a small featured list (first 15 by name)
-        if (!q.trim()) {
-          const { data, error } = await supabase
-            .from("swimmers")
-            .select("id, full_name, gender, age_years")
-            .order("full_name", { ascending: true })
-            .limit(15);
+  const supabase = getSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-          if (!active) return;
-          if (error) throw error;
-          setResults(data || []);
-        } else {
-          // Case-insensitive match on full name
-          const { data, error } = await supabase
-            .from("swimmers")
-            .select("id, full_name, gender, age_years")
-            .ilike("full_name", `%${q.trim()}%`)
-            .order("full_name", { ascending: true })
-            .limit(50);
+  let query = supabase
+    .from("swimmers")
+    .select("id, full_name, gender, age_years")
+    .order("full_name", { ascending: true });
 
-          if (!active) return;
-          if (error) throw error;
-          setResults(data || []);
-        }
-      } catch (e) {
-        if (!active) return;
-        setErr(e.message || "Search failed");
-        setResults([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }, 300); // 300ms debounce
+  if (q) query = query.ilike("full_name", `%${q}%`);
 
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [q]);
+  const { data: swimmers = [], error } = await query;
 
-  const headerNote = useMemo(() => {
-    if (loading) return "Searching…";
-    if (err) return `Error: ${err}`;
-    if (!q.trim() && results.length > 0) return "Featured swimmers";
-    if (q.trim() && results.length === 0) return `No results for “${q.trim()}”`;
-    if (q.trim()) return `Results for “${q.trim()}”`;
-    return "Browse swimmers";
-  }, [loading, err, q, results]);
+  let savedMap = new Map();
+  if (user) {
+    const { data: savedRows = [] } = await supabase
+      .from("saved_swimmers")
+      .select("swimmer_id")
+      .eq("user_id", user.id);
+    savedMap = new Map(savedRows.map((r) => [r.swimmer_id, true]));
+  }
 
   return (
-    <main className="min-h-screen max-w-3xl mx-auto px-4 py-8">
-      {/* Simple header */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold">🏊 SwimTrack</h1>
-        <p className="text-sm text-white/70">
-          Search any swimmer by name. No sign-in required.
-        </p>
-      </header>
-
-      {/* Search box */}
-      <div className="mb-6">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search swimmer by name… e.g. Isaac"
-          className="w-full rounded-xl bg-white text-slate-900 px-4 py-3 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-600"
-        />
-      </div>
-
-      {/* Status */}
-      <div className="text-sm text-white/70 mb-3">{headerNote}</div>
-
-      {/* Results */}
+    <main className="mx-auto max-w-md px-4 py-6 sm:max-w-2xl">
+      <SearchBar defaultValue={q} placeholder="Search by name" className="mb-5" />
       <ul className="space-y-3">
-        {results.map((s) => (
-          <li
-            key={s.id}
-            className="rounded-xl border border-white/10 bg-white/5 p-4 flex items-center justify-between"
-          >
-            <div>
-              <div className="font-semibold">{s.full_name}</div>
-              <div className="text-sm text-white/70">
-                {s.gender} • Age {s.age_years ?? "—"}
-              </div>
-            </div>
-            <Link
-              href={`/swimmers/${s.id}`}
-              className="text-sm bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg"
-            >
-              View
-            </Link>
-          </li>
-        ))}
-      </ul>
+        {error && <li className="text-red-400 text-sm">Error: {error.message}</li>}
+        {swimmers.map((s) => {
+          const initiallySaved = savedMap.get(s.id) === true;
+          return (
+            <li key={s.id} className="flex items-center gap-3 rounded-2xl bg-[#0f1a20] border border-white/10 px-3 py-4">
+              <Link href={`/swimmers/${s.id}`} className="flex-1 flex items-center gap-3">
+                <AvatarInitial name={s.full_name} />
+                <div className="min-w-0">
+                  <div className="text-[17px] font-semibold truncate">{s.full_name}</div>
+                  <div className="text-sm text-white/60 mt-[2px]">{s.gender} • Age {s.age_years}</div>
+                </div>
+              </Link>
 
-      {/* Quick links */}
-      <div className="mt-8 flex items-center gap-4 text-sm">
-        <Link href="/swimmers" className="text-blue-400 hover:underline">
-          Browse all swimmers →
-        </Link>
-        <Link href="/saved" className="text-blue-400 hover:underline">
-          My saved swimmers →
-        </Link>
-      </div>
+              {/* View button */}
+              <Link href={`/swimmers/${s.id}`} className="mr-2 rounded-full bg-white/10 hover:bg-white/20 px-3 py-2 text-sm">
+                View
+              </Link>
+
+              {user ? (
+                <SaveButton swimmerId={s.id} initiallySaved={initiallySaved} variant="pill" />
+              ) : (
+                <Link href="/sign-in" className="flex items-center gap-2 rounded-full bg-[#0b3a5e] text-white px-4 py-2 text-sm hover:bg-[#0d4b79] transition">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Save
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {swimmers.length === 0 && !error && <p className="text-white/70 text-sm mt-6">No swimmers found.</p>}
     </main>
   );
 }
