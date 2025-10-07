@@ -3,40 +3,47 @@
 import { useState, useTransition } from "react";
 
 export default function SaveButton({ swimmerId, initiallySaved = false }) {
-  const [saved, setSaved] = useState(Boolean(initiallySaved));
+  const [saved, setSaved] = useState(initiallySaved);
   const [isPending, startTransition] = useTransition();
 
   const save = () =>
     startTransition(async () => {
-      try {
-        const res = await fetch("/api/saved", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          // IMPORTANT: send auth cookies so the API can read the session
-          credentials: "same-origin",
-          body: JSON.stringify({ swimmerId }),
-        });
+      const res = await fetch("/api/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ swimmerId }),
+      });
 
-        if (!res.ok) {
-          const payload = await res.json().catch(() => ({}));
-          console.error("Save failed:", payload?.error || res.statusText);
-          return;
-        }
-
-        setSaved(true);
-      } catch (err) {
-        console.error("Save error:", err);
-      }
+      if (res.ok) setSaved(true);
+      else console.error("Save failed");
     });
 
-  if (saved) return <span className="text-green-400">Saved ✓</span>;
+  const remove = () =>
+    startTransition(async () => {
+      const res = await fetch(`/api/saved/${swimmerId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) setSaved(false);
+      else console.error("Remove failed");
+    });
+
+  if (saved)
+    return (
+      <button
+        onClick={remove}
+        disabled={isPending}
+        className="text-red-400 hover:underline disabled:opacity-50"
+      >
+        {isPending ? "Removing…" : "Remove"}
+      </button>
+    );
 
   return (
     <button
       onClick={save}
       disabled={isPending}
       className="text-blue-400 hover:underline disabled:opacity-50"
-      aria-disabled={isPending}
     >
       {isPending ? "Saving…" : "Save"}
     </button>
