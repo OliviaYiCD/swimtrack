@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(_request, ctx) {
   const supabase = getSupabaseServer();
+
+  // ✅ Next 15: await params
+  const { swimmerId } = await ctx.params;
 
   // who is signed in?
   const {
@@ -19,12 +22,11 @@ export async function DELETE(_request, { params }) {
     .from("saved_swimmers")
     .delete()
     .eq("user_id", user.id)
-    .eq("swimmer_id", params.swimmerId);
+    .eq("swimmer_id", swimmerId);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // IMPORTANT: return JSON (fetch won't follow server redirects)
   return NextResponse.json({ ok: true });
 }
