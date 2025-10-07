@@ -1,54 +1,74 @@
 // app/swimmers/page.jsx
-'use client';
+import Link from "next/link";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+import SaveButton from "@/components/SaveButton";
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+export default async function SwimmersPage() {
+  const supabase = getSupabaseServer();
 
-// Public client using anon key
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function SwimmersPage() {
-  const [swimmers, setSwimmers] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    async function loadSwimmers() {
-      const { data, error } = await supabase
-        .from('swimmers')
-        .select('id, full_name, gender, age_years')
-        .order('full_name', { ascending: true });
-
-      if (error) setError(error.message);
-      else setSwimmers(data);
-    }
-
-    loadSwimmers();
-  }, []);
+  // Get all swimmers
+  const { data: swimmers = [], error } = await supabase
+    .from("swimmers")
+    .select("id, full_name, gender, age_years")
+    .order("full_name", { ascending: true });
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">🏊 Swimmers</h1>
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <header className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">🏊 Swimmers</h1>
+        {user ? (
+          <div className="text-sm opacity-70">Logged in as {user.email}</div>
+        ) : (
+          <div className="text-sm opacity-70">Not signed in</div>
+        )}
+      </header>
 
-      {error && <p className="text-red-400">{error}</p>}
-      {swimmers === null ? (
-        <p>Loading…</p>
-      ) : swimmers.length === 0 ? (
-        <p>No swimmers found</p>
+      {error && <p className="text-red-400">Error: {error.message}</p>}
+
+      {swimmers.length === 0 ? (
+        <p>No swimmers found.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {swimmers.map((s) => (
-            <li key={s.id} className="rounded border border-slate-700 p-3">
-              <div className="font-medium">{s.full_name}</div>
-              <div className="text-sm text-slate-400">
-                {s.gender} • Age: {s.age_years ?? '—'}
+            <li
+              key={s.id}
+              className="rounded-xl border border-white/10 bg-white/5 p-4 flex items-center justify-between"
+            >
+              <div>
+                <div className="font-semibold">{s.full_name}</div>
+                <div className="text-sm opacity-70">
+                  {s.gender} • Age {s.age_years}
+                </div>
               </div>
+              {user ? (
+                <SaveButton swimmerId={s.id} />
+              ) : (
+                <Link
+                  href="/sign-in"
+                  className="text-blue-400 hover:underline text-sm"
+                >
+                  Sign in to Save
+                </Link>
+              )}
             </li>
           ))}
         </ul>
       )}
+
+      {/* 👉 Added link below the list */}
+      <p className="mt-6">
+        <Link
+          href="/saved"
+          className="text-blue-400 hover:underline text-sm"
+        >
+          View my saved swimmers →
+        </Link>
+      </p>
     </main>
   );
 }
