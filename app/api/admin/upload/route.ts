@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 // app/api/admin/upload/route.ts
+
 import { NextResponse } from "next/server";
 import { Buffer } from "node:buffer";
 import OpenAI from "openai";
