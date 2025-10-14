@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getSupabaseServer } from "@/lib/supabaseServer";
-import Header from "@/components/Header";
-import RemoveSavedButton from "@/components/RemoveSavedButton"; // <-- keep this path as in your project
+import { getSupabaseServer } from "../../lib/supabaseServer";
+import Header from "../../components/Header";
+import RemoveSavedButton from "../../components/RemoveSavedButton"; // <-- keep this path as in your project
 
 export const dynamic = "force-dynamic";
 
 export default async function SavedPage() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
 
   // who is signed in?
   const {

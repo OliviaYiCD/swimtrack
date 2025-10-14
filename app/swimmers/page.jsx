@@ -1,10 +1,10 @@
 // app/swimmers/page.jsx
 import Link from "next/link";
-import { getSupabaseServer } from "@/lib/supabaseServer";
-import SaveButton from "@/components/SaveButton";
+import { getSupabaseServer } from "../../lib/supabaseServer";
+import SaveButton from "../../components/SaveButton";
 
 export default async function SwimmersPage() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
 
   // Get current user
   const {

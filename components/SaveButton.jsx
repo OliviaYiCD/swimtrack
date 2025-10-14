@@ -15,12 +15,14 @@ export default function SaveButton({
 
   const save = () =>
     startTransition(async () => {
+      console.log("Saving swimmer_id:", swimmerId);
       const res = await fetch("/api/saved", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ swimmerId }),
+        body: JSON.stringify({ swimmer_id: swimmerId }),
       });
       if (res.ok) setSaved(true);
+ 
     });
 
   if (saved) {

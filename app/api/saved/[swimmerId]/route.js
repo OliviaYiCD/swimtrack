@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServer } from "@/lib/supabaseServer";
+import { getSupabaseServer } from "../../../../lib/supabaseServer";
 
 export async function DELETE(_request, ctx) {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
 
   // ✅ Next 15: await params
   const { swimmerId } = await ctx.params;

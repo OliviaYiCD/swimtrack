@@ -13,7 +13,8 @@ export default function SearchBar({ defaultValue = "", placeholder, className })
   // Submit on Enter; otherwise debounce to keep it snappy
   useEffect(() => {
     const t = setTimeout(() => {
-      const current = new URLSearchParams(Array.from(params.entries()));
+      // Next 15: use toString() for stability instead of iterating entries()
+      const current = new URLSearchParams(params?.toString?.() || "");
       if (value) current.set("q", value);
       else current.delete("q");
       router.replace(`/?${current.toString()}`);

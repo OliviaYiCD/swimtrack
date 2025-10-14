@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServer } from "@/lib/supabaseServer";
+import { getSupabaseServer } from "../../../lib/supabaseServer";
 
 export async function POST(req) {
   const { event, session } = await req.json();
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
 
   if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
     // Write the session cookies on the server
