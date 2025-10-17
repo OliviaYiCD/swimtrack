@@ -1,8 +1,8 @@
 // app/swimmers/[id]/page.jsx
 import Link from "next/link";
-import { getSupabaseServer } from "@/lib/supabaseServer";
-import AvatarInitial from "@/components/AvatarInitial";
-import SaveButton from "@/components/SaveButton";
+import { getSupabaseServer } from "../../lib/supabaseServer";
+import AvatarInitial from "../../components/AvatarInitial";
+import SaveButton from "../../components/SaveButton";
 
 export const dynamic = "force-dynamic";
 
