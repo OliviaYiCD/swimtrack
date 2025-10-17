@@ -19,6 +19,7 @@ function formatMs(ms) {
     ? `${m}:${String(s).padStart(2, "0")}.${String(cs).padStart(2, "0")}`
     : `${s}.${String(cs).padStart(2, "0")}s`;
 }
+
 function formatDate(d) {
   if (!d) return "";
   try {
@@ -55,10 +56,10 @@ export default async function Home({ searchParams }) {
 
   try {
     if (q) {
-      // Search mode
+      // Search mode (now returns age_years too)
       const { data, error } = await supabase
         .from("swimmers_v2")
-        .select("id, full_name, gender")
+        .select("id, full_name, gender, age_years")
         .ilike("full_name", `%${q}%`)
         .order("full_name", { ascending: true });
       swimmers = Array.isArray(data) ? data : [];
@@ -91,9 +92,10 @@ export default async function Home({ searchParams }) {
       }
 
       if (featuredIds.length) {
+        // pull age_years here too
         const { data, error } = await supabase
           .from("swimmers_v2")
-          .select("id, full_name, gender")
+          .select("id, full_name, gender, age_years")
           .in("id", featuredIds);
 
         const rows = Array.isArray(data) ? data : [];
@@ -103,9 +105,10 @@ export default async function Home({ searchParams }) {
         );
         listError = error || null;
       } else {
+        // fallback list also with age_years
         const { data, error } = await supabase
           .from("swimmers_v2")
-          .select("id, full_name, gender")
+          .select("id, full_name, gender, age_years")
           .order("full_name", { ascending: true })
           .limit(5);
         swimmers = Array.isArray(data) ? data : [];
@@ -228,17 +231,24 @@ export default async function Home({ searchParams }) {
                     {s.full_name}
                   </div>
                   <div className="mt-1 text-[13px] sm:text-sm text-white/60 flex items-center gap-3">
-                    {g ? (
-                      <span className="inline-flex items-center gap-1">
-                        <span aria-hidden>{g === "female" ? "♀" : "♂"}</span>
-                        <span className="capitalize">
-                          {g === "female" ? "Female" : "Male"}
-                        </span>
-                      </span>
-                    ) : (
-                      <span>—</span>
-                    )}
-                  </div>
+  {g ? (
+    <>
+      <span className="inline-flex items-center gap-1">
+        <span aria-hidden>{g === "female" ? "♀" : "♂"}</span>
+        <span className="capitalize">
+          {g === "female" ? "Female" : "Male"}
+        </span>
+      </span>
+
+      {/* ✅ Show age when present (string or number) */}
+      {s.age_years !== null && s.age_years !== undefined && String(s.age_years) !== "" ? (
+        <span>• Age {Number(s.age_years)}</span>
+      ) : null}
+    </>
+  ) : (
+    <span>—</span>
+  )}
+</div>
                   {winBadge}
                 </div>
               </div>
