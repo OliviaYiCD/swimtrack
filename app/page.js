@@ -7,7 +7,13 @@ import SaveButton from "../components/SaveButton";
 
 export const dynamic = "force-dynamic";
 
-const STROKE_LABEL = { FR: "Free", BK: "Back", BR: "Breast", FL: "Fly", IM: "IM" };
+const STROKE_LABEL = {
+  FR: "Freestyle",
+  BK: "Backstroke",
+  BR: "Breaststroke",
+  FL: "Butterfly",
+  IM: "IM",
+};
 
 function formatMs(ms) {
   if (ms == null) return "";
@@ -51,12 +57,17 @@ export default async function Home({ searchParams }) {
   let swimmers = [];
   let listError = null;
 
-  // For featured mode we also keep their best win for the badge
-  const bestWinBySwimmer = new Map(); // swimmer_id -> { spec_id, place, time_ms, time_text }
+  // 🏆 MVP scoring
+  const POINTS = { 1: 10, 2: 8, 3: 5 };
+  const since = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
+
+  // MVP tally by swimmer:
+  // swimmer_id -> { points, firsts, seconds, thirds, best_time_ms }
+  const mvpBySwimmer = new Map();
 
   try {
     if (q) {
-      // Search mode (now returns age_years too)
+      // Search mode
       const { data, error } = await supabase
         .from("swimmers_v2")
         .select("id, full_name, gender, age_years")
@@ -65,34 +76,57 @@ export default async function Home({ searchParams }) {
       swimmers = Array.isArray(data) ? data : [];
       listError = error || null;
     } else {
-      // FEATURED: 5 swimmers who have at least one win (place = 1), by fastest win
-      const { data: wins, error: winsErr } = await supabase
+      // FEATURED MVPs: pull podium finishes in the last 12 months and tally points
+      const { data: podiumRows, error: podiumErr } = await supabase
         .from("results_v2")
-        .select("swimmer_id, spec_id, place, time_ms, time_text")
-        .eq("place", 1)
-        .order("time_ms", { ascending: true, nullsFirst: true })
-        .limit(5000);
+        .select("swimmer_id, place, time_ms")
+        .in("place", [1, 2, 3])
+        .gte("start_date", since)
+        .limit(50000); // safety cap
 
-      if (winsErr) throw winsErr;
+      if (podiumErr) throw podiumErr;
 
-      const featuredIds = [];
-      const seen = new Set();
-      for (const w of wins || []) {
-        const sid = w.swimmer_id;
-        if (!sid || seen.has(sid)) continue;
-        seen.add(sid);
-        featuredIds.push(sid);
-        bestWinBySwimmer.set(sid, {
-          spec_id: w.spec_id,
-          place: w.place,
-          time_ms: w.time_ms,
-          time_text: w.time_text,
-        });
-        if (featuredIds.length >= 5) break;
+      for (const r of podiumRows || []) {
+        const sid = r.swimmer_id;
+        if (!sid) continue;
+        const pts = POINTS[r.place] || 0;
+
+        const curr = mvpBySwimmer.get(sid) || {
+          points: 0,
+          firsts: 0,
+          seconds: 0,
+          thirds: 0,
+          best_time_ms: null, // keep best (lowest) time we saw among podiums
+        };
+        curr.points += pts;
+        if (r.place === 1) curr.firsts += 1;
+        if (r.place === 2) curr.seconds += 1;
+        if (r.place === 3) curr.thirds += 1;
+
+        if (r.time_ms != null) {
+          if (curr.best_time_ms == null || r.time_ms < curr.best_time_ms) {
+            curr.best_time_ms = r.time_ms;
+          }
+        }
+
+        mvpBySwimmer.set(sid, curr);
       }
 
+      // Pick top 5 by points, tie-break: more 1sts, then best time (lower)
+      const ranked = Array.from(mvpBySwimmer.entries())
+        .sort((a, b) => {
+          const A = a[1], B = b[1];
+          if (B.points !== A.points) return B.points - A.points;
+          if (B.firsts !== A.firsts) return B.firsts - A.firsts;
+          const at = A.best_time_ms ?? Number.POSITIVE_INFINITY;
+          const bt = B.best_time_ms ?? Number.POSITIVE_INFINITY;
+          return at - bt;
+        })
+        .slice(0, 5);
+
+      const featuredIds = ranked.map(([sid]) => sid);
+
       if (featuredIds.length) {
-        // pull age_years here too
         const { data, error } = await supabase
           .from("swimmers_v2")
           .select("id, full_name, gender, age_years")
@@ -105,7 +139,7 @@ export default async function Home({ searchParams }) {
         );
         listError = error || null;
       } else {
-        // fallback list also with age_years
+        // Fallback if no podiums in the last year
         const { data, error } = await supabase
           .from("swimmers_v2")
           .select("id, full_name, gender, age_years")
@@ -128,23 +162,6 @@ export default async function Home({ searchParams }) {
       .select("swimmer_id")
       .eq("user_id", user.id);
     savedMap = new Map((savedRows || []).map((r) => [r.swimmer_id, true]));
-  }
-
-  // specs for featured badges
-  const allWinSpecIds = Array.from(
-    new Set(
-      Array.from(bestWinBySwimmer.values())
-        .map((w) => w.spec_id)
-        .filter(Boolean)
-    )
-  );
-  const specById = new Map();
-  if (allWinSpecIds.length) {
-    const { data: specRows } = await supabase
-      .from("event_specs_v2")
-      .select("id, distance_m, stroke")
-      .in("id", allWinSpecIds);
-    for (const s of specRows || []) specById.set(s.id, s);
   }
 
   // ---------- Latest events (meets) ----------
@@ -174,7 +191,11 @@ export default async function Home({ searchParams }) {
           Search by name to find swimmers and track their progress.
         </p>
         <div className="max-w-md mx-auto">
-          <SearchBar defaultValue={q} placeholder="Search swimmers..." className="mb-0" />
+          <SearchBar
+            defaultValue={q}
+            placeholder="Search swimmers..."
+            className="mb-0"
+          />
         </div>
       </section>
 
@@ -186,11 +207,11 @@ export default async function Home({ searchParams }) {
 
       <div className="mb-3 mt-1 flex items-center justify-between">
         <h2 className="text-[15px] sm:text-[16px] font-semibold text-white tracking-wide">
-          {q ? "Search results" : "Featured swimmers"}
+          {q ? "Search results" : "Featured MVP swimmers"}
         </h2>
         {!q && (
           <span className="text-[12px] text-white/40 italic">
-            Top 5 ranked swimmers this season
+            Top 5 by podium points (last 12 months)
           </span>
         )}
       </div>
@@ -199,21 +220,24 @@ export default async function Home({ searchParams }) {
         {swimmers.map((s) => {
           const saved = savedMap.get(s.id) === true;
           const g = (s.gender || "").toLowerCase();
+          const genderLabel = g ? (g === "female" ? "Female" : "Male") : null;
+          const hasAge =
+            s.age_years !== null &&
+            s.age_years !== undefined &&
+            String(s.age_years) !== "";
 
-          // featured badge
-          let winBadge = null;
-          const win = bestWinBySwimmer.get(s.id);
-          if (!q && win) {
-            const spec = specById.get(win.spec_id);
-            const dist = spec?.distance_m != null ? `${spec.distance_m}` : "";
-            const stroke = spec?.stroke ? (STROKE_LABEL[spec.stroke] || spec.stroke) : "";
-            const evt = [dist, stroke].filter(Boolean).join(" ");
-            const time = win.time_text || formatMs(win.time_ms);
-            winBadge = (
+          // Build MVP chip if present
+          let mvpChip = null;
+          if (mvpBySwimmer.has(s.id)) {
+            const mv = mvpBySwimmer.get(s.id);
+            const breakdown = `1st: ${mv.firsts} • 2nd: ${mv.seconds} • 3rd: ${mv.thirds}`;
+            mvpChip = (
               <div className="mt-2">
-                <span className="px-2 py-[2px] rounded-full bg-white/8 text-white/80 text-[12px]">
-                  {evt} #{win.place}
-                  {time ? ` · ${time}` : ""}
+                <span
+                  title={breakdown}
+                  className="px-2 py-[2px] rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 text-[12px]"
+                >
+                  MVP {mv.points} pts
                 </span>
               </div>
             );
@@ -230,26 +254,26 @@ export default async function Home({ searchParams }) {
                   <div className="text-[15px] sm:text-[16px] font-semibold truncate">
                     {s.full_name}
                   </div>
-                  <div className="mt-1 text-[13px] sm:text-sm text-white/60 flex items-center gap-3">
-  {g ? (
-    <>
-      <span className="inline-flex items-center gap-1">
-        <span aria-hidden>{g === "female" ? "♀" : "♂"}</span>
-        <span className="capitalize">
-          {g === "female" ? "Female" : "Male"}
-        </span>
-      </span>
 
-      {/* ✅ Show age when present (string or number) */}
-      {s.age_years !== null && s.age_years !== undefined && String(s.age_years) !== "" ? (
-        <span>• Age {Number(s.age_years)}</span>
-      ) : null}
-    </>
-  ) : (
-    <span>—</span>
-  )}
-</div>
-                  {winBadge}
+                  <div className="mt-1 text-[13px] sm:text-sm text-white/60 flex items-center gap-2">
+                    {genderLabel ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span aria-hidden>{g === "female" ? "♀" : "♂"}</span>
+                        <span className="capitalize">{genderLabel}</span>
+                      </span>
+                    ) : null}
+
+                    {hasAge ? (
+                      <>
+                        {genderLabel ? <span>•</span> : null}
+                        <span>Age {Number(s.age_years)}</span>
+                      </>
+                    ) : null}
+
+                    {!genderLabel && !hasAge ? <span>—</span> : null}
+                  </div>
+
+                  {mvpChip}
                 </div>
               </div>
 

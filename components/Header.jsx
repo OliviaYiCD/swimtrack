@@ -8,24 +8,35 @@ export default async function Header() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="w-full border-b border-gray-700 py-4 px-6 flex items-center justify-between">
-      <Link href="/" className="text-xl font-semibold text-white">🏊‍♂️ SwimTrack</Link>
-
-      {user ? (
-        <div className="flex items-center gap-3 text-sm text-white">
-          <span>{user.email}</span>
-          <form action="/sign-out" method="post">
-            <button className="rounded bg-red-600 px-3 py-1 hover:bg-red-700">Sign Out</button>
-          </form>
-        </div>
-      ) : (
+    <header className="w-full border-b border-white/10 bg-[#0b0f12]">
+      <div className="max-w-[1028px] mx-auto flex items-center justify-between px-4 py-3">
+        {/* Logo / Home link */}
         <Link
-          href="/sign-in?next=/"
-          className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
+          href="/"
+          className="text-[18px] sm:text-[20px] font-semibold text-white tracking-wide flex items-center gap-2"
         >
-          Sign In
+          🏊‍♂️ <span>SwimTrack</span>
         </Link>
-      )}
+
+        {/* Right side: Auth */}
+        {user ? (
+          <div className="flex items-center gap-3 text-sm text-white/90">
+            <span className="truncate max-w-[160px]">{user.email}</span>
+            <form action="/sign-out" method="post">
+              <button className="rounded bg-red-600 hover:bg-red-700 px-3 py-1 transition-colors duration-150">
+                Sign Out
+              </button>
+            </form>
+          </div>
+        ) : (
+          <Link
+            href="/sign-in?next=/"
+            className="rounded bg-blue-600 hover:bg-blue-700 px-3 py-1 text-sm text-white transition-colors duration-150"
+          >
+            Sign In
+          </Link>
+        )}
+      </div>
     </header>
   );
 }

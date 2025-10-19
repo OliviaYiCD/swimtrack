@@ -39,8 +39,8 @@ function formatDate(d) {
 }
 function rankText(n) {
   if (n == null) return null;
-  const s = n % 10,
-    t = n % 100;
+  const s = n % 10;
+  const t = n % 100;
   const suf =
     s === 1 && t !== 11
       ? "st"
@@ -50,6 +50,35 @@ function rankText(n) {
       ? "rd"
       : "th";
   return `${n}${suf}`;
+}
+
+async function resolveTeamName(supabase, swimmerId) {
+  // look at a few recent results to find a club text or club_id
+  const { data: resRows, error } = await supabase
+    .from("results_v2")
+    .select(`
+      club,
+      club_id,
+      start_date,
+      clubs_v2:club_id ( name )
+    `) // <- will embed clubs_v2.name if a FK exists; safe even if null
+    .eq("swimmer_id", swimmerId)
+    .order("start_date", { ascending: false, nullsFirst: true })
+    .limit(20);
+
+  if (error || !Array.isArray(resRows)) return null;
+
+  // prefer an explicit text club first
+  for (const r of resRows) {
+    const t = (r?.club || "").trim();
+    if (t) return t;
+  }
+  // then use clubs_v2 via FK embedding
+  for (const r of resRows) {
+    const t = (r?.clubs_v2?.name || "").trim();
+    if (t) return t;
+  }
+  return null;
 }
 
 export default async function SwimmerPage({ params, searchParams }) {
@@ -81,18 +110,9 @@ export default async function SwimmerPage({ params, searchParams }) {
     );
   }
 
-  // Latest club/team (from most recent result)
-  let club = null;
-  {
-    const { data: lastClub } = await supabase
-      .from("results_v2")
-      .select("club,start_date")
-      .eq("swimmer_id", id)
-      .order("start_date", { ascending: false, nullsFirst: true })
-      .limit(1)
-      .maybeSingle();
-    club = lastClub?.club || null;
-  }
+  const clubName = await resolveTeamName(supabase, id);
+  // later in JSX
+  {clubName && <p className="text-white/50 text-[13px] mt-1">Team: {clubName}</p>}
 
   // Saved?
   let initiallySaved = false;
@@ -132,6 +152,7 @@ export default async function SwimmerPage({ params, searchParams }) {
     }
     bestRows = Array.from(bestBySpec.values()).slice(0, 4);
 
+    // metadata
     const specIds = [...new Set(bestRows.map((r) => r.spec_id).filter(Boolean))];
     const meetIds = [...new Set(bestRows.map((r) => r.meet_id).filter(Boolean))];
 
@@ -160,7 +181,7 @@ export default async function SwimmerPage({ params, searchParams }) {
       .limit(10);
     recent = recentRes.data || [];
 
-    // Ensure spec/meet metadata for recents
+    // ensure metadata for recents
     const recentSpecIds = [...new Set(recent.map((r) => r.spec_id).filter(Boolean))].filter(
       (x) => !specMap.has(x)
     );
@@ -213,7 +234,9 @@ export default async function SwimmerPage({ params, searchParams }) {
               : "Male"
             : "—"}
         </p>
-        {club && <p className="text-white/50 text-[13px] mt-1">Team: {club}</p>}
+        {clubName && (
+  <p className="text-white/50 text-[13px] mt-1">Team: {clubName}</p>
+)}
 
         <div className="mt-4 flex justify-center">
           <SaveButton
@@ -255,17 +278,19 @@ export default async function SwimmerPage({ params, searchParams }) {
         </div>
       ) : (
         <>
-      {/* Personal Bests */}
-<h2 className="text-[16px] font-semibold tracking-wide mb-3">
-  Personal Bests
-</h2>
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+          {/* Personal Bests */}
+          <h2 className="text-[16px] font-semibold tracking-wide mb-3">
+            Personal Bests
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
             {bestRows.length === 0 ? (
               <div className="text-white/60 text-sm">No personal bests yet.</div>
             ) : (
               bestRows.map((r, idx) => {
                 const sTitle = specTitle(r.spec_id);
-                const meetName = r.meet_id ? meetMap.get(r.meet_id)?.name || "" : "";
+                const meetName = r.meet_id
+                  ? meetMap.get(r.meet_id)?.name || ""
+                  : "";
                 const time = r.time_text || formatMs(r.time_ms);
                 return (
                   <div
@@ -274,11 +299,13 @@ export default async function SwimmerPage({ params, searchParams }) {
                   >
                     <div className="text-white/80 text-[13px]">{sTitle}</div>
                     <div className="mt-2 flex items-center gap-2">
-  <div className="text-[22px] font-bold tracking-wide">{time || "—"}</div>
-  <span className="text-[11px] font-semibold text-green-300 bg-green-500/20 rounded-full px-2 py-[2px]">
-    PB
-  </span>
-</div>
+                      <div className="text-[22px] font-bold tracking-wide">
+                        {time || "—"}
+                      </div>
+                      <span className="text-[11px] font-semibold text-green-300 bg-green-500/20 rounded-full px-2 py-[2px]">
+                        PB
+                      </span>
+                    </div>
                     <div className="text-white/50 text-[12px] mt-2">
                       {meetName || "—"}
                     </div>
@@ -288,58 +315,63 @@ export default async function SwimmerPage({ params, searchParams }) {
             )}
           </div>
 
-         {/* Recent results */}
-<h2 className="text-[16px] font-semibold tracking-wide mb-3">Recent results</h2>
-<ul className="space-y-3">
-  {recent.length === 0 ? (
-    <li className="text-white/60 text-sm">No recent results.</li>
-  ) : (
-    recent.map((r, i) => {
-      const title = specTitle(r.spec_id);
-      const when = formatDate(r.start_date);
-      const time = r.time_text || formatMs(r.time_ms);
-      const rk = rankText(r.place);
-      const meetName = r.meet_id ? (meetMap.get(r.meet_id)?.name || "") : "";
+          {/* Recent results */}
+          <h2 className="text-[16px] font-semibold tracking-wide mb-3">
+            Recent results
+          </h2>
+          <ul className="space-y-3">
+            {recent.length === 0 ? (
+              <li className="text-white/60 text-sm">No recent results.</li>
+            ) : (
+              recent.map((r, i) => {
+                const title = specTitle(r.spec_id);
+                const when = formatDate(r.start_date);
+                const time = r.time_text || formatMs(r.time_ms);
+                const rk = rankText(r.place);
+                const meetName = r.meet_id
+                  ? meetMap.get(r.meet_id)?.name || ""
+                  : "";
 
-      // Check if this result is the PB
-      const best = bestRows.find(b => b.spec_id === r.spec_id);
-      const isPB = best && best.time_ms === r.time_ms;
+                // Is this result the PB for that spec?
+                const best = bestRows.find((b) => b.spec_id === r.spec_id);
+                const isPB = best && best.time_ms === r.time_ms;
 
-      return (
-        <li
-          key={`${r.spec_id}-${r.start_date || i}`}
-          className="rounded-2xl bg-[#0f1a20] border border-white/10 p-4"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[15px] font-medium truncate">{title}</div>
-              <div className="text-white/60 text-[13px] mt-[2px]">
-                {when}
-                {meetName ? ` • ${meetName}` : ""}
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="flex items-center gap-2 text-[18px] font-bold">
-              {isPB && (
-                  <span className="text-[11px] font-semibold text-green-300 bg-green-400/15 border border-green-400/30 rounded-full px-2 py-[2px]">
-                    PB
-                  </span>
-                )}
-                <span>{time || "—"}</span>
-             
-              </div>
-              {rk && (
-                <div className="text-[12px] text-blue-300 mt-[2px]">
-                  Rank: {rk}
-                </div>
-              )}
-            </div>
-          </div>
-        </li>
-      );
-    })
-  )}
-</ul>
+                return (
+                  <li
+                    key={`${r.spec_id}-${r.start_date || i}`}
+                    className="rounded-2xl bg-[#0f1a20] border border-white/10 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[15px] font-medium truncate">
+                          {title}
+                        </div>
+                        <div className="text-white/60 text-[13px] mt-[2px]">
+                          {when}
+                          {meetName ? ` • ${meetName}` : ""}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="flex items-center gap-2 text-[18px] font-bold">
+                          {isPB && (
+                            <span className="text-[11px] font-semibold text-green-300 bg-green-400/15 border border-green-400/30 rounded-full px-2 py-[2px]">
+                              PB
+                            </span>
+                          )}
+                          <span>{time || "—"}</span>
+                        </div>
+                        {rk && (
+                          <div className="text-[12px] text-blue-300 mt-[2px]">
+                            Rank: {rk}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })
+            )}
+          </ul>
         </>
       )}
     </main>
