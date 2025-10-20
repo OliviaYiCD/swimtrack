@@ -6,7 +6,7 @@ import SaveButton from "../../../components/SaveButton";
 import CompetitorsPanel from "../../../components/CompetitorsPanel";
 import RemoveSavedButton from "../../../components/RemoveSavedButton";
 import SavedToggle from "../../../components/SavedToggle";
-
+import PerformanceChart from "../../../components/PerformanceChart";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,6 @@ function rankText(n) {
 }
 
 async function resolveTeamName(supabase, swimmerId) {
-  // look at a few recent results to find a club text or club_id
   const { data: resRows, error } = await supabase
     .from("results_v2")
     .select(`
@@ -64,19 +63,17 @@ async function resolveTeamName(supabase, swimmerId) {
       club_id,
       start_date,
       clubs_v2:club_id ( name )
-    `) // <- will embed clubs_v2.name if a FK exists; safe even if null
+    `)
     .eq("swimmer_id", swimmerId)
     .order("start_date", { ascending: false, nullsFirst: true })
     .limit(20);
 
   if (error || !Array.isArray(resRows)) return null;
 
-  // prefer an explicit text club first
   for (const r of resRows) {
     const t = (r?.club || "").trim();
     if (t) return t;
   }
-  // then use clubs_v2 via FK embedding
   for (const r of resRows) {
     const t = (r?.clubs_v2?.name || "").trim();
     if (t) return t;
@@ -88,7 +85,6 @@ export default async function SwimmerPage({ params, searchParams }) {
   const p = await params;
   const id = p?.id;
 
-  // tab: "competitors" or default (personal)
   const sp = await searchParams;
   const tab =
     typeof sp?.get === "function"
@@ -98,7 +94,6 @@ export default async function SwimmerPage({ params, searchParams }) {
 
   const supabase = await getSupabaseServer();
 
-  // ----- Swimmer core -----
   const { data: swimmer, error: swimmerErr } = await supabase
     .from("swimmers_v2")
     .select("id, full_name, gender, age_years")
@@ -114,10 +109,7 @@ export default async function SwimmerPage({ params, searchParams }) {
   }
 
   const clubName = await resolveTeamName(supabase, id);
-  // later in JSX
-  {clubName && <p className="text-white/50 text-[13px] mt-1">Team: {clubName}</p>}
 
-  // Saved?
   let initiallySaved = false;
   {
     const { data: userRes } = await supabase.auth.getUser();
@@ -133,14 +125,12 @@ export default async function SwimmerPage({ params, searchParams }) {
     }
   }
 
-  // For Personal Results view only: PBs + Recent
   let bestRows = [];
   let specMap = new Map();
   let meetMap = new Map();
   let recent = [];
 
   if (!showCompetitors) {
-    // ----- Personal bests (fastest per spec) -----
     const { data: allTimes = [] } = await supabase
       .from("results_v2")
       .select("spec_id,time_ms,time_text,meet_id,start_date")
@@ -155,7 +145,6 @@ export default async function SwimmerPage({ params, searchParams }) {
     }
     bestRows = Array.from(bestBySpec.values()).slice(0, 4);
 
-    // metadata
     const specIds = [...new Set(bestRows.map((r) => r.spec_id).filter(Boolean))];
     const meetIds = [...new Set(bestRows.map((r) => r.meet_id).filter(Boolean))];
 
@@ -175,7 +164,6 @@ export default async function SwimmerPage({ params, searchParams }) {
       meetMap = new Map(meets.map((m) => [m.id, m]));
     }
 
-    // ----- Recent results -----
     const recentRes = await supabase
       .from("results_v2")
       .select("spec_id, meet_id, start_date, time_ms, time_text, place")
@@ -184,7 +172,6 @@ export default async function SwimmerPage({ params, searchParams }) {
       .limit(10);
     recent = recentRes.data || [];
 
-    // ensure metadata for recents
     const recentSpecIds = [...new Set(recent.map((r) => r.spec_id).filter(Boolean))].filter(
       (x) => !specMap.has(x)
     );
@@ -238,14 +225,11 @@ export default async function SwimmerPage({ params, searchParams }) {
             : "—"}
         </p>
         {clubName && (
-  <p className="text-white/50 text-[13px] mt-1">Team: {clubName}</p>
-)}
+          <p className="text-white/50 text-[13px] mt-1">Team: {clubName}</p>
+        )}
 
         <div className="mt-4 flex justify-center">
-        <SavedToggle
-  swimmerId={swimmer.id}
-  initiallySaved={initiallySaved}
-/>
+          <SavedToggle swimmerId={swimmer.id} initiallySaved={initiallySaved} />
         </div>
       </section>
 
@@ -276,6 +260,7 @@ export default async function SwimmerPage({ params, searchParams }) {
       {/* Content */}
       {showCompetitors ? (
         <div className="mt-4">
+          {/* The chart will now render INSIDE CompetitorsPanel, right below the event picker */}
           <CompetitorsPanel swimmerId={id} />
         </div>
       ) : (
@@ -326,15 +311,21 @@ export default async function SwimmerPage({ params, searchParams }) {
               <li className="text-white/60 text-sm">No recent results.</li>
             ) : (
               recent.map((r, i) => {
-                const title = specTitle(r.spec_id);
-                const when = formatDate(r.start_date);
                 const time = r.time_text || formatMs(r.time_ms);
+                const when = formatDate(r.start_date);
                 const rk = rankText(r.place);
+                const title = (() => {
+                  // build from spec map
+                  const s = specMap.get(r.spec_id);
+                  if (!s) return "—";
+                  const dist = s?.distance_m != null ? `${s.distance_m}m` : "";
+                  const stroke = s?.stroke ? STROKE_LABEL[s.stroke] || s.stroke : "";
+                  return [dist, stroke].filter(Boolean).join(" ");
+                })();
                 const meetName = r.meet_id
                   ? meetMap.get(r.meet_id)?.name || ""
                   : "";
 
-                // Is this result the PB for that spec?
                 const best = bestRows.find((b) => b.spec_id === r.spec_id);
                 const isPB = best && best.time_ms === r.time_ms;
 
@@ -345,9 +336,7 @@ export default async function SwimmerPage({ params, searchParams }) {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-[15px] font-medium truncate">
-                          {title}
-                        </div>
+                        <div className="text-[15px] font-medium truncate">{title}</div>
                         <div className="text-white/60 text-[13px] mt-[2px]">
                           {when}
                           {meetName ? ` • ${meetName}` : ""}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import clsx from "clsx";
+import PerformanceChart from "./PerformanceChart";
 
 const STROKE_LABEL = {
   FR: "Freestyle",
@@ -26,12 +27,12 @@ function formatMs(ms) {
 function ageGenderText(age, gender) {
   const g = (gender || "").toLowerCase();
   const gLabel =
-    g === "f" || g === "female" ? "Female" :
-    g === "m" || g === "male" ? "Male" : g || "—";
+    g === "f" || g === "female" ? "Female"
+    : g === "m" || g === "male"   ? "Male"
+    : g || "—";
   return `Age ${age ?? "—"}, ${gLabel}`;
 }
 
-// Visual style for rank badge
 function rankBadgeClass(rank) {
   if (rank === 1) return "from-yellow-300 to-amber-500 text-black ring-2 ring-amber-300";
   if (rank === 2) return "from-slate-200 to-slate-400 text-black ring-2 ring-slate-300";
@@ -39,10 +40,16 @@ function rankBadgeClass(rank) {
   return "from-white/15 to-white/5 text-white ring-1 ring-white/15";
 }
 
-/**
- * Props:
- *   - swimmerId (string)
- */
+function initials(name = "") {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0] || "")
+    .join("")
+    .toUpperCase();
+}
+
 export default function CompetitorsPanel({ swimmerId }) {
   const supabase = createClientComponentClient();
 
@@ -52,13 +59,12 @@ export default function CompetitorsPanel({ swimmerId }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load base swimmer + their events (titles)
+  // Load base swimmer + their events
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
 
-      // Keep it minimal (club here can cause issues and we don't need it)
       const { data: meRow } = await supabase
         .from("swimmers_v2")
         .select("id, full_name, gender, age_years")
@@ -89,14 +95,13 @@ export default function CompetitorsPanel({ swimmerId }) {
     return () => { alive = false; };
   }, [swimmerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load cohort PBs for selected event (and club via the PB row)
+  // Load cohort PBs for selected event
   useEffect(() => {
     let alive = true;
     (async () => {
       if (!me || !specId) return;
       setLoading(true);
 
-      // Same cohort (exact age + gender)
       const { data: cohortSwimmers = [] } = await supabase
         .from("swimmers_v2")
         .select("id, full_name, gender, age_years")
@@ -104,11 +109,10 @@ export default function CompetitorsPanel({ swimmerId }) {
         .eq("age_years", me.age_years);
 
       if (!alive) return;
-      const cohortIds = new Set(cohortSwimmers.map(s => s.id));
+      const cohortIds = new Set(cohortSwimmers.map((s) => s.id));
 
       const since = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
 
-      // Fetch times for this spec over last 12 months; include club here
       const { data: allRows = [] } = await supabase
         .from("results_v2")
         .select("swimmer_id, time_ms, time_text, start_date, meet_id, club")
@@ -118,7 +122,6 @@ export default function CompetitorsPanel({ swimmerId }) {
 
       if (!alive) return;
 
-      // Choose first (fastest) row per swimmer as PB
       const bestBySwimmer = new Map();
       for (const r of allRows) {
         if (!cohortIds.has(r.swimmer_id)) continue;
@@ -127,24 +130,22 @@ export default function CompetitorsPanel({ swimmerId }) {
 
       const idList = Array.from(bestBySwimmer.keys());
 
-      // Hydrate names
       const { data: names = [] } = await supabase
         .from("swimmers_v2")
         .select("id, full_name, gender, age_years")
         .in("id", idList);
-      const nameMap = new Map(names.map(n => [n.id, n]));
+      const nameMap = new Map(names.map((n) => [n.id, n]));
 
-      // Meet names
       const meetIds = Array.from(
-        new Set(Array.from(bestBySwimmer.values()).map(v => v.meet_id).filter(Boolean))
+        new Set(Array.from(bestBySwimmer.values()).map((v) => v.meet_id).filter(Boolean))
       );
       const { data: meets = [] } = await supabase
         .from("meets_v2")
         .select("id, name")
         .in("id", meetIds);
-      const meetMap = new Map(meets.map(m => [m.id, m.name]));
+      const meetMap = new Map(meets.map((m) => [m.id, m.name]));
 
-      const combined = idList.map(sid => {
+      const combined = idList.map((sid) => {
         const r = bestBySwimmer.get(sid);
         const info = nameMap.get(sid) || {};
         return {
@@ -154,23 +155,21 @@ export default function CompetitorsPanel({ swimmerId }) {
           age_years: info.age_years,
           time_ms: r.time_ms,
           time_text: r.time_text,
-          club_name: r.club || "",                 // club picked from PB row
+          club_name: r.club || "",
           meet_name: r.meet_id ? meetMap.get(r.meet_id) : "",
         };
       });
 
-      // My PB for deltas
-      const myBest = combined.find(x => x.swimmer_id === me.id);
+      const myBest = combined.find((x) => x.swimmer_id === me.id);
       const myMs = myBest?.time_ms ?? null;
 
-      // Rank by time (nulls last)
       combined.sort(
         (a, b) =>
           (a.time_ms ?? Number.POSITIVE_INFINITY) -
           (b.time_ms ?? Number.POSITIVE_INFINITY)
       );
 
-      const rowsWithDelta = combined.map(r => ({
+      const rowsWithDelta = combined.map((r) => ({
         ...r,
         delta: myMs != null && r.time_ms != null ? (r.time_ms - myMs) / 1000 : null,
       }));
@@ -182,57 +181,77 @@ export default function CompetitorsPanel({ swimmerId }) {
     return () => { alive = false; };
   }, [me, specId, supabase]);
 
-  const leader = rows[0];
-  const cohortHeader = me && specId ? ageGenderText(me.age_years, me.gender) : "";
+  const selectedTitle = useMemo(
+    () => events.find((e) => e.spec_id === specId)?.title || "",
+    [events, specId]
+  );
+
+  /** 🔵 Chart rows with `isOwner` so owner's bar renders in primary blue */
+  const chartRows = useMemo(
+    () =>
+      rows
+        .filter((r) => r?.time_ms != null)
+        .map((r) => {
+          const owner = me && r.swimmer_id === me.id;
+          return {
+            label: initials(r.full_name),
+            name: owner ? `${r.full_name} (You)` : r.full_name,
+            time_s: r.time_ms / 1000,   // <-- send seconds
+            isOwner: owner,                // <-- key for blue bar
+          };
+        }),
+    [rows, me]
+  );
 
   return (
     <div className="space-y-4">
-   {/* Event Selector - Pill Style */}
-<div className="space-y-2 mt-3">
-  <h3 className="text-[15px] font-semibold text-white/80">
-    Select an event to compare competitors
-  </h3>
+      {/* Event Selector */}
+      <div className="space-y-2 mt-3">
+        <h3 className="text-[15px] font-semibold text-white/80">
+          Select an event to compare competitors
+        </h3>
 
-  <div className="flex flex-wrap gap-2 mt-2">
-    {events.map((e) => {
-      const isActive = e.spec_id === specId;
-      return (
-        <button
-          key={e.spec_id}
-          onClick={() => setSpecId(e.spec_id)}
-          className={clsx(
-            "px-4 py-2 text-[14px] rounded-full border transition-all duration-200",
-            isActive
-              ? "bg-blue-500/20 border-blue-400/40 text-blue-200 font-semibold shadow-[0_0_8px_rgba(59,130,246,0.4)]"
-              : "bg-white/5 border-white/10 text-white/70 hover:text-white hover:border-white/20"
-          )}
-        >
-          {e.title}
-        </button>
-      );
-    })}
-  </div>
-</div>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {events.map((e) => {
+            const isActive = e.spec_id === specId;
+            return (
+              <button
+                key={e.spec_id}
+                onClick={() => setSpecId(e.spec_id)}
+                className={clsx(
+                  "px-4 py-2 text-[14px] rounded-full border transition-all duration-200",
+                  isActive
+                    ? "bg-blue-500/20 border-blue-400/40 text-blue-200 font-semibold shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                    : "bg-white/5 border-white/10 text-white/70 hover:text-white hover:border-white/20"
+                )}
+              >
+                {e.title}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* Performance chart (under selector, before cards) */}
+      {!loading && chartRows.length > 0 && (
+        <PerformanceChart
+          title="Performance Racing Chart (PBs)"
+          subtitle="Times in seconds. Shorter bar is better."
+          rows={chartRows}
+        />
+      )}
 
-{/* Comparison Header */}
-{me && specId && (
-  <div>
-    <div className="text-white/50 text-[13px] font-medium mb-[2px]">
-    Top Competitors (PBs)  Comparing against
-    </div>
-    <div className="text-white font-bold text-[20px] leading-tight tracking-wide">
-      <span className="text-white/90">
-        {
-          events.find(e => e.spec_id === specId)?.title ||
-          ""
-        }
-      </span>
-    </div>
-  </div>
-)}
-
-
+      {/* Comparison Header */}
+      {me && specId && (
+        <div>
+          <div className="text-white/50 text-[13px] font-medium mb-[2px]">
+            Top Competitors (PBs) Comparing against
+          </div>
+          <div className="text-white font-bold text-[20px] leading-tight tracking-wide">
+            <span className="text-white/90">{selectedTitle}</span>
+          </div>
+        </div>
+      )}
 
       {/* List */}
       <div className="space-y-3">
@@ -289,14 +308,14 @@ export default function CompetitorsPanel({ swimmerId }) {
                     ][idx % 4]
                   )}
                 >
-                  {r.full_name.split(/\s+/).slice(0, 2).map(p => p[0] || "").join("").toUpperCase()}
+                  {initials(r.full_name)}
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className={clsx("font-semibold truncate", isMe ? "text-purple-300" : "text-white")}>
-                        {r.full_name}
+                        {r.full_name}{isMe ? " (You)" : ""}
                       </div>
                       <div className="text-white/50 text-[13px]">
                         {ageGenderText(r.age_years, r.gender)}
@@ -318,7 +337,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                   {(r.meet_name || isMe) && (
                     <div className="mt-2 text-[12px] text-white/50">
                       {r.meet_name || ""}
-                      {isMe && leader?.swimmer_id === r.swimmer_id && (
+                      {isMe && rows[0]?.swimmer_id === r.swimmer_id && (
                         <span className="ml-2 inline-block rounded-full bg-white/8 px-2 py-[2px] text-white/70">
                           Personal Best
                         </span>

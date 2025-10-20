@@ -361,11 +361,7 @@ export default async function Home({ searchParams }) {
                       </div>
 
                       {/* MVP chip — displayed in featured list */}
-                      <div className="mt-2">
-                        <span className="px-2 py-[2px] rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 text-[12px]">
-                          MVP
-                        </span>
-                      </div>
+                     {/* MVP chip removed — already covered by section title */}
                     </div>
                   </div>
 
