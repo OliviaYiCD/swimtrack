@@ -9,20 +9,30 @@ export default function SaveButton({
   initiallySaved = false,
   variant = "link",       // "link" | "pill"
   className,
+  label,                  // optional: override label
+  onSaved,                // ✅ new optional callback
 }) {
   const [saved, setSaved] = useState(initiallySaved);
   const [isPending, startTransition] = useTransition();
 
   const save = () =>
     startTransition(async () => {
-      console.log("Saving swimmer_id:", swimmerId);
-      const res = await fetch("/api/saved", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ swimmer_id: swimmerId }),
-      });
-      if (res.ok) setSaved(true);
- 
+      try {
+        const res = await fetch("/api/saved", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ swimmer_id: swimmerId }),
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          console.error("Save API error:", await res.text());
+          return;
+        }
+        setSaved(true);
+        onSaved?.();        // ✅ notify parent wrapper
+      } catch (e) {
+        console.error("Save failed:", e);
+      }
     });
 
   if (saved) {
@@ -40,8 +50,11 @@ export default function SaveButton({
   }
 
   const pillClasses =
-    "flex items-center gap-2 rounded-full bg-[#0b3a5e] text-white px-4 py-2 text-sm hover:bg-[#0d4b79] transition disabled:opacity-50";
+    "flex items-center gap-2 rounded-full bg-[#0b3a5e] text-white px-4 py-2 text-sm " +
+    "hover:bg-[#0d4b79] transition disabled:opacity-50";
   const linkClasses = "text-blue-400 hover:underline disabled:opacity-50";
+
+  const content = label ?? "Save"; // prevent “++” by letting caller control label
 
   return (
     <button
@@ -54,7 +67,7 @@ export default function SaveButton({
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       )}
-      {isPending ? "Saving…" : "Save"}
+      {isPending ? "Saving…" : content}
     </button>
   );
 }

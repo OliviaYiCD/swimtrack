@@ -4,6 +4,9 @@ import { getSupabaseServer } from "../../../lib/supabaseServer";
 import AvatarInitial from "../../../components/AvatarInitial";
 import SaveButton from "../../../components/SaveButton";
 import CompetitorsPanel from "../../../components/CompetitorsPanel";
+import RemoveSavedButton from "../../../components/RemoveSavedButton";
+import SavedToggle from "../../../components/SavedToggle";
+
 
 export const dynamic = "force-dynamic";
 
@@ -239,11 +242,10 @@ export default async function SwimmerPage({ params, searchParams }) {
 )}
 
         <div className="mt-4 flex justify-center">
-          <SaveButton
-            swimmerId={swimmer.id}
-            initiallySaved={initiallySaved}
-            variant="pill"
-          />
+        <SavedToggle
+  swimmerId={swimmer.id}
+  initiallySaved={initiallySaved}
+/>
         </div>
       </section>
 
