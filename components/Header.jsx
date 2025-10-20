@@ -18,12 +18,17 @@ export default async function Header() {
           🏊‍♂️ <span>SwimTrack</span>
         </Link>
 
-        {/* Right side: Auth */}
+        {/* Right side: Auth section */}
         {user ? (
           <div className="flex items-center gap-3 text-sm text-white/90">
             <span className="truncate max-w-[160px]">{user.email}</span>
+
+            {/* Sign Out button posts to /sign-out */}
             <form action="/sign-out" method="post">
-              <button className="rounded bg-red-600 hover:bg-red-700 px-3 py-1 transition-colors duration-150">
+              <button
+                type="submit"
+                className="rounded bg-red-600 hover:bg-red-700 px-3 py-1.5 text-sm text-white transition-colors duration-150"
+              >
                 Sign Out
               </button>
             </form>
@@ -31,7 +36,7 @@ export default async function Header() {
         ) : (
           <Link
             href="/sign-in?next=/"
-            className="rounded bg-blue-600 hover:bg-blue-700 px-3 py-1 text-sm text-white transition-colors duration-150"
+            className="rounded bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm text-white transition-colors duration-150"
           >
             Sign In
           </Link>

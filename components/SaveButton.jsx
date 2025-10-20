@@ -10,7 +10,7 @@ export default function SaveButton({
   variant = "link",       // "link" | "pill"
   className,
   label,                  // optional: override label
-  onSaved,                // ✅ new optional callback
+  onSaved,                // optional callback after saving
 }) {
   const [saved, setSaved] = useState(initiallySaved);
   const [isPending, startTransition] = useTransition();
@@ -24,12 +24,32 @@ export default function SaveButton({
           body: JSON.stringify({ swimmer_id: swimmerId }),
           cache: "no-store",
         });
+
         if (!res.ok) {
-          console.error("Save API error:", await res.text());
+          // --- minimal improvement: if unauthenticated, send to sign-in ---
+          let txt = "";
+          try { txt = await res.text(); } catch {}
+          const unauth =
+            res.status === 401 ||
+            res.status === 403 ||
+            /not\s+authenticated/i.test(txt);
+
+          if (unauth) {
+            const next =
+              typeof window !== "undefined"
+                ? window.location.pathname + window.location.search
+                : "/";
+            // redirect to your sign-in page with return url
+            window.location.href = `/signin?next=${encodeURIComponent(next)}`;
+            return;
+          }
+
+          console.error("Save API error:", txt || res.statusText);
           return;
         }
+
         setSaved(true);
-        onSaved?.();        // ✅ notify parent wrapper
+        onSaved?.(); // notify parent wrapper if provided
       } catch (e) {
         console.error("Save failed:", e);
       }
@@ -50,11 +70,9 @@ export default function SaveButton({
   }
 
   const pillClasses =
-    "flex items-center gap-2 rounded-full bg-[#0b3a5e] text-white px-4 py-2 text-sm " +
-    "hover:bg-[#0d4b79] transition disabled:opacity-50";
+    "flex items-center gap-2 rounded-full bg-[#0b3a5e] text-white px-4 py-2 text-sm hover:bg-[#0d4b79] transition disabled:opacity-50";
   const linkClasses = "text-blue-400 hover:underline disabled:opacity-50";
-
-  const content = label ?? "Save"; // prevent “++” by letting caller control label
+  const content = label ?? "Save";
 
   return (
     <button

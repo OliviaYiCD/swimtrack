@@ -4,6 +4,7 @@ import { getSupabaseServer } from "../lib/supabaseServer";
 import AvatarInitial from "../components/AvatarInitial";
 import SearchBar from "../components/SearchBar";
 import SaveButton from "../components/SaveButton";
+import SavedSwimmersSection from "../components/SavedSwimmersSection";
 
 export const dynamic = "force-dynamic";
 
@@ -167,9 +168,8 @@ export default async function Home({ searchParams }) {
     featuredRows = [];
   }
 
-  // Saved swimmers map + full saved list (for the new section)
+  // Saved swimmers map (for “Save” pills lighting up)
   let savedMap = new Map();
-  let mySaved = [];
   if (user) {
     const { data: savedRows } = await supabase
       .from("saved_swimmers_v2")
@@ -178,19 +178,6 @@ export default async function Home({ searchParams }) {
 
     const ids = (savedRows || []).map(r => r.swimmer_id).filter(Boolean);
     savedMap = new Map(ids.map(id => [id, true]));
-
-    if (ids.length) {
-      const { data: savedSwimmers = [] } = await supabase
-        .from("swimmers_v2")
-        .select("id, full_name, gender, age_years")
-        .in("id", ids);
-
-      // Keep original saved order (latest first) if desired
-      const order = new Map(ids.map((id, i) => [id, i]));
-      mySaved = (savedSwimmers || []).sort(
-        (a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999)
-      );
-    }
   }
 
   // ---------- Latest meets ----------
@@ -241,83 +228,16 @@ export default async function Home({ searchParams }) {
       )}
 
       {/* =========================
-          MY SAVED (only on home, not search)
+          MY SAVED SECTION (always shows on home)
           ========================= */}
-      {!shouldSearch && user && mySaved.length > 0 && (
-        <>
-          <div className="mb-3 mt-1 flex items-center justify-between">
-            <h2 className="text-[15px] sm:text-[16px] font-semibold text-white tracking-wide">
-              My saved swimmers
-            </h2>
-            <span className="text-[12px] text-white/40">
-              {mySaved.length} saved
-            </span>
-          </div>
-
-          <ul className="space-y-3 mb-8">
-            {mySaved.map((s) => {
-              const genderLabel = renderGenderLabel(s.gender);
-              const hasAge =
-                s.age_years !== null && s.age_years !== undefined && String(s.age_years) !== "";
-
-              return (
-                <li
-                  key={s.id}
-                  className="flex items-center gap-3 rounded-2xl bg-[#0f1a20] border border-white/10 px-3 py-3"
-                >
-                  <div className="flex-1 flex items-center gap-3 min-w-0">
-                    <AvatarInitial name={s.full_name} />
-                    <div className="min-w-0">
-                      <div className="text-[15px] sm:text-[16px] font-semibold truncate">
-                        {s.full_name}
-                      </div>
-                      <div className="mt-1 text-[13px] sm:text-sm text-white/60 flex items-center gap-2">
-                        {genderLabel ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span aria-hidden>{genderLabel === "Female" ? "♀" : "♂"}</span>
-                            <span className="capitalize">{genderLabel}</span>
-                          </span>
-                        ) : null}
-                        {hasAge ? (
-                          <>
-                            {genderLabel ? <span>•</span> : null}
-                            <span>Age {Number(s.age_years)}</span>
-                          </>
-                        ) : null}
-                        {!genderLabel && !hasAge ? <span>—</span> : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 flex items-center gap-2">
-                    <Link
-                      href={`/swimmers/${s.id}`}
-                      className="rounded-full bg-white/10 hover:bg-white/20 px-3 py-2 text-sm"
-                    >
-                      View
-                    </Link>
-
-                    {/* This will render the green "Saved" pill in your SaveButton */}
-                    <SaveButton
-                      swimmerId={s.id}
-                      initiallySaved={true}
-                      variant="pill"
-                      className="px-3 py-2 text-sm"
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </>
-      )}
+      {!shouldSearch && <SavedSwimmersSection />}
 
       {/* =========================
           MODE 1: FEATURED MVPs
           ========================= */}
       {!shouldSearch && (
         <>
-          <div className="mb-3 mt-1 flex items-center justify-between">
+          <div className="mb-3 mt-8 flex items-center justify-between">
             <h2 className="text-[15px] sm:text-[16px] font-semibold text-white tracking-wide">
               Featured MVP swimmers
             </h2>
@@ -359,9 +279,6 @@ export default async function Home({ searchParams }) {
                         ) : null}
                         {!genderLabel && !hasAge ? <span>—</span> : null}
                       </div>
-
-                      {/* MVP chip — displayed in featured list */}
-                     {/* MVP chip removed — already covered by section title */}
                     </div>
                   </div>
 
