@@ -137,6 +137,12 @@ credentials: "include",
           </button>
         </form>
 
+        <p className="text-right text-sm mt-1">
+  <a href="/reset-password" className="text-blue-300 hover:text-blue-200">
+    Forgot password?
+  </a>
+</p>
+
         {err && <p className="text-red-300 mt-4 text-sm">{err}</p>}
 
         <p className="text-center text-white/60 text-sm mt-6">
