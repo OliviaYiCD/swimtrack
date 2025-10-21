@@ -11,8 +11,8 @@ export default function RootLayout({ children }) {
       <body className="bg-black text-white">
         <SupabaseListener />
         <Header />
-        <main className="max-w-3xl mx-auto px-4 py-8">{children}</main>
-      </body>
+        <main className="mx-auto max-w-[1028px] px-4 sm:px-6">{children}</main>     
+         </body>
     </html>
   );
 }

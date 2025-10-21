@@ -5,6 +5,7 @@ import AvatarInitial from "../components/AvatarInitial";
 import SearchBar from "../components/SearchBar";
 import SaveButton from "../components/SaveButton";
 import SavedSwimmersSection from "../components/SavedSwimmersSection";
+import FeaturedSwimmerRow from "../components/FeaturedSwimmerRow";
 
 export const dynamic = "force-dynamic";
 
@@ -247,68 +248,14 @@ export default async function Home({ searchParams }) {
           </div>
 
           <ul className="space-y-3">
-            {featuredRows.map((s) => {
-              const saved = savedMap.get(s.id) === true;
-              const genderLabel = renderGenderLabel(s.gender);
-              const hasAge =
-                s.age_years !== null && s.age_years !== undefined && String(s.age_years) !== "";
-
-              return (
-                <li
-                  key={s.id}
-                  className="flex items-center gap-3 rounded-2xl bg-[#0f1a20] border border-white/10 px-3 py-3"
-                >
-                  <div className="flex-1 flex items-center gap-3 min-w-0">
-                    <AvatarInitial name={s.full_name} />
-                    <div className="min-w-0">
-                      <div className="text-[15px] sm:text-[16px] font-semibold truncate">
-                        {s.full_name}
-                      </div>
-                      <div className="mt-1 text-[13px] sm:text-sm text-white/60 flex items-center gap-2">
-                        {genderLabel ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span aria-hidden>{genderLabel === "Female" ? "♀" : "♂"}</span>
-                            <span className="capitalize">{genderLabel}</span>
-                          </span>
-                        ) : null}
-                        {hasAge ? (
-                          <>
-                            {genderLabel ? <span>•</span> : null}
-                            <span>Age {Number(s.age_years)}</span>
-                          </>
-                        ) : null}
-                        {!genderLabel && !hasAge ? <span>—</span> : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 flex items-center gap-2">
-                    <Link
-                      href={`/swimmers/${s.id}`}
-                      className="rounded-full bg-white/10 hover:bg-white/20 px-3 py-2 text-sm"
-                    >
-                      View
-                    </Link>
-
-                    {user ? (
-                      <SaveButton
-                        swimmerId={s.id}
-                        initiallySaved={saved}
-                        variant="pill"
-                        className="px-3 py-2 text-sm"
-                      />
-                    ) : (
-                      <Link
-                        href="/sign-in"
-                        className="rounded-full bg-[#0b3a5e] hover:bg-[#0d4b79] px-3 py-2 text-sm"
-                      >
-                        + Save
-                      </Link>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+            {featuredRows.map((s) => (
+              <FeaturedSwimmerRow
+                key={s.id}
+                swimmer={s}
+                isSaved={savedMap.get(s.id) === true}
+                isAuthed={!!user}
+              />
+            ))}
             {featuredRows.length === 0 && (
               <li className="text-white/60 text-sm">No MVP swimmers found.</li>
             )}

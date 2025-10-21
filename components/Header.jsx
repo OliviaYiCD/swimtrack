@@ -1,4 +1,6 @@
+// components/Header.jsx
 import Link from "next/link";
+import MobileMenu from "./MobileMenu";
 import { getSupabaseServer } from "../lib/supabaseServer";
 
 export default async function Header() {
@@ -8,39 +10,49 @@ export default async function Header() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="w-full border-b border-white/10 bg-[#0b0f12]">
-      <div className="max-w-[1028px] mx-auto flex items-center justify-between px-4 py-3">
-        {/* Logo / Home link */}
-        <Link
-          href="/"
-          className="text-[18px] sm:text-[20px] font-semibold text-white tracking-wide flex items-center gap-2"
-        >
-          🏊‍♂️ <span>SwimTrack</span>
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1216]/80 backdrop-blur">
+      <div className="mx-auto max-w-2xl px-4 py-3 flex items-center justify-between">
+        {/* Brand */}
+        <Link href="/" className="flex items-center gap-2 text-white font-semibold">
+          <span className="text-xl">🏊‍♂️</span>
+          <span className="tracking-wide">SwimTrack</span>
         </Link>
 
-        {/* Right side: Auth section */}
-        {user ? (
-          <div className="flex items-center gap-3 text-sm text-white/90">
-            <span className="truncate max-w-[160px]">{user.email}</span>
-
-            {/* Sign Out button posts to /sign-out */}
-            <form action="/sign-out" method="post">
-              <button
-                type="submit"
-                className="rounded bg-red-600 hover:bg-red-700 px-3 py-1.5 text-sm text-white transition-colors duration-150"
+        {/* Desktop actions */}
+        <div className="hidden md:flex items-center gap-3">
+          {user ? (
+            <>
+              <span className="max-w-[200px] truncate text-white/70 text-sm">
+                {user.email}
+              </span>
+              <form action="/sign-out" method="POST">
+                <button
+                  className="rounded-xl bg-red-600 hover:bg-red-500 px-3 py-2 text-sm text-white"
+                >
+                  Sign Out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-sm text-white"
               >
-                Sign Out
-              </button>
-            </form>
-          </div>
-        ) : (
-          <Link
-            href="/sign-in?next=/"
-            className="rounded bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm text-white transition-colors duration-150"
-          >
-            Sign In
-          </Link>
-        )}
+                Sign In
+              </Link>
+              <Link
+                href="/sign-up"
+                className="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-3 py-2 text-sm text-white"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Mobile menu button */}
+        <MobileMenu user={user} />
       </div>
     </header>
   );

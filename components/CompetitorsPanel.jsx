@@ -1,3 +1,4 @@
+// components/CompetitorsPanel.jsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -5,13 +6,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import clsx from "clsx";
 import PerformanceChart from "./PerformanceChart";
 
-const STROKE_LABEL = {
-  FR: "Freestyle",
-  BK: "Backstroke",
-  BR: "Breaststroke",
-  FL: "Butterfly",
-  IM: "Individual Medley",
-};
+const STROKE_LABEL = { FR: "Freestyle", BK: "Backstroke", BR: "Breaststroke", FL: "Butterfly", IM: "Individual Medley" };
 
 function formatMs(ms) {
   if (ms == null) return "—";
@@ -19,35 +14,21 @@ function formatMs(ms) {
   const m = Math.floor(t / 60000);
   const s = Math.floor((t % 60000) / 1000);
   const cs = Math.floor((t % 1000) / 10);
-  return m > 0
-    ? `${m}:${String(s).padStart(2, "0")}.${String(cs).padStart(2, "0")}`
-    : `${s}.${String(cs).padStart(2, "0")}s`;
+  return m > 0 ? `${m}:${String(s).padStart(2,"0")}.${String(cs).padStart(2,"0")}` : `${s}.${String(cs).padStart(2,"0")}s`;
 }
-
 function ageGenderText(age, gender) {
   const g = (gender || "").toLowerCase();
-  const gLabel =
-    g === "f" || g === "female" ? "Female"
-    : g === "m" || g === "male"   ? "Male"
-    : g || "—";
+  const gLabel = g === "f" || g === "female" ? "Female" : g === "m" || g === "male" ? "Male" : g || "—";
   return `Age ${age ?? "—"}, ${gLabel}`;
 }
-
 function rankBadgeClass(rank) {
   if (rank === 1) return "from-yellow-300 to-amber-500 text-black ring-2 ring-amber-300";
   if (rank === 2) return "from-slate-200 to-slate-400 text-black ring-2 ring-slate-300";
   if (rank === 3) return "from-orange-400 to-amber-600 text-black ring-2 ring-amber-400";
   return "from-white/15 to-white/5 text-white ring-1 ring-white/15";
 }
-
 function initials(name = "") {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0] || "")
-    .join("")
-    .toUpperCase();
+  return name.trim().split(/\s+/).slice(0,2).map(p => p[0] || "").join("").toUpperCase();
 }
 
 export default function CompetitorsPanel({ swimmerId }) {
@@ -59,7 +40,6 @@ export default function CompetitorsPanel({ swimmerId }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load base swimmer + their events
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -95,7 +75,6 @@ export default function CompetitorsPanel({ swimmerId }) {
     return () => { alive = false; };
   }, [swimmerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load cohort PBs for selected event
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -186,7 +165,6 @@ export default function CompetitorsPanel({ swimmerId }) {
     [events, specId]
   );
 
-  /** 🔵 Chart rows with `isOwner` so owner's bar renders in primary blue */
   const chartRows = useMemo(
     () =>
       rows
@@ -196,18 +174,19 @@ export default function CompetitorsPanel({ swimmerId }) {
           return {
             label: initials(r.full_name),
             name: owner ? `${r.full_name} (You)` : r.full_name,
-            time_s: r.time_ms / 1000,   // <-- send seconds
-            isOwner: owner,                // <-- key for blue bar
+            time_s: r.time_ms / 1000,
+            isOwner: owner,
           };
         }),
     [rows, me]
   );
 
   return (
-    <div className="space-y-4">
+    // 🔒 Constrain the whole panel on mobile
+    <div className="space-y-4 mx-auto w-full max-w-[420px] sm:max-w-none">
       {/* Event Selector */}
       <div className="space-y-2 mt-3">
-        <h3 className="text-[15px] font-semibold text-white/80">
+        <h3 className="text-[14px] sm:text-[15px] font-semibold text-white/80">
           Select an event to compare competitors
         </h3>
 
@@ -219,7 +198,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                 key={e.spec_id}
                 onClick={() => setSpecId(e.spec_id)}
                 className={clsx(
-                  "px-4 py-2 text-[14px] rounded-full border transition-all duration-200",
+                  "px-3 py-[6px] text-[13px] sm:text-[14px] rounded-full border transition-all duration-200",
                   isActive
                     ? "bg-blue-500/20 border-blue-400/40 text-blue-200 font-semibold shadow-[0_0_8px_rgba(59,130,246,0.4)]"
                     : "bg-white/5 border-white/10 text-white/70 hover:text-white hover:border-white/20"
@@ -232,7 +211,7 @@ export default function CompetitorsPanel({ swimmerId }) {
         </div>
       </div>
 
-      {/* Performance chart (under selector, before cards) */}
+      {/* Chart */}
       {!loading && chartRows.length > 0 && (
         <PerformanceChart
           title="Performance Racing Chart (PBs)"
@@ -244,17 +223,17 @@ export default function CompetitorsPanel({ swimmerId }) {
       {/* Comparison Header */}
       {me && specId && (
         <div>
-          <div className="text-white/50 text-[13px] font-medium mb-[2px]">
+          <div className="text-white/50 text-[12px] sm:text-[13px] font-medium mb-[2px]">
             Top Competitors (PBs) Comparing against
           </div>
-          <div className="text-white font-bold text-[20px] leading-tight tracking-wide">
+          <div className="text-white font-bold text-[18px] sm:text-[20px] leading-tight tracking-wide">
             <span className="text-white/90">{selectedTitle}</span>
           </div>
         </div>
       )}
 
       {/* List */}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {loading && <div className="text-white/60 text-sm">Loading competitors…</div>}
         {!loading && rows.length === 0 && (
           <div className="text-white/60 text-sm">No competitors yet.</div>
@@ -276,30 +255,29 @@ export default function CompetitorsPanel({ swimmerId }) {
             <div
               key={r.swimmer_id}
               className={clsx(
-                "rounded-2xl border px-4 py-4 transition-colors duration-200",
+                "rounded-2xl border px-3 py-3 sm:px-4 sm:py-4 transition-colors duration-200 overflow-hidden",
                 isMe
                   ? "bg-[#14355b] border-[#3b82f6]/40 shadow-[0_0_10px_rgba(59,130,246,0.25)]"
                   : "bg-[#0f1a20] border-white/10"
               )}
             >
               <div className="flex items-center gap-3">
-                {/* Rank badge */}
+                {/* Rank */}
                 <div
                   className={clsx(
-                    "shrink-0 h-9 w-9 sm:h-10 sm:w-10 grid place-items-center rounded-full",
-                    "bg-gradient-to-b font-extrabold text-[13px] sm:text-[14px] shadow-lg",
+                    "shrink-0 h-8 w-8 sm:h-10 sm:w-10 grid place-items-center rounded-full",
+                    "bg-gradient-to-b font-extrabold text-[12px] sm:text-[14px] shadow-lg",
                     rankBadgeClass(rank)
                   )}
                   aria-label={`Rank ${rank}`}
-                  title={`Rank ${rank}`}
                 >
                   {rank}
                 </div>
 
-                {/* Initials avatar */}
+                {/* Initials */}
                 <div
                   className={clsx(
-                    "h-10 w-10 shrink-0 rounded-full text-sm font-bold grid place-items-center",
+                    "h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full text-[13px] sm:text-sm font-bold grid place-items-center",
                     [
                       "bg-blue-600/30 text-blue-200",
                       "bg-emerald-600/30 text-emerald-200",
@@ -312,33 +290,33 @@ export default function CompetitorsPanel({ swimmerId }) {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-2 sm:gap-3">
                     <div className="min-w-0">
                       <div className={clsx("font-semibold truncate", isMe ? "text-purple-300" : "text-white")}>
                         {r.full_name}{isMe ? " (You)" : ""}
                       </div>
-                      <div className="text-white/50 text-[13px]">
+                      <div className="text-white/50 text-[12px] sm:text-[13px]">
                         {ageGenderText(r.age_years, r.gender)}
                         {r.club_name ? ` • ${r.club_name}` : ""}
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="flex items-center gap-2 text-[18px] font-bold">
-                        <span className="text-[11px] font-semibold text-green-300 bg-green-400/15 border border-green-400/30 rounded-full px-2 py-[2px]">
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-[16px] sm:text-[18px] font-bold">
+                        <span className="text-[10px] sm:text-[11px] font-semibold text-green-300 bg-green-400/15 border border-green-400/30 rounded-full px-1.5 py-[1px] sm:px-2 sm:py-[2px]">
                           PB
                         </span>
                         <span>{r.time_text || formatMs(r.time_ms)}</span>
                       </div>
-                      <div className={clsx("text-[12px]", deltaColor)}>{deltaText}</div>
+                      <div className={clsx("text-[11px] sm:text-[12px]", deltaColor)}>{deltaText}</div>
                     </div>
                   </div>
 
                   {(r.meet_name || isMe) && (
-                    <div className="mt-2 text-[12px] text-white/50">
+                    <div className="mt-1.5 sm:mt-2 text-[11px] sm:text-[12px] text-white/50">
                       {r.meet_name || ""}
                       {isMe && rows[0]?.swimmer_id === r.swimmer_id && (
-                        <span className="ml-2 inline-block rounded-full bg-white/8 px-2 py-[2px] text-white/70">
+                        <span className="ml-1.5 sm:ml-2 inline-block rounded-full bg-white/8 px-1.5 py-[1px] sm:px-2 sm:py-[2px] text-white/70">
                           Personal Best
                         </span>
                       )}
