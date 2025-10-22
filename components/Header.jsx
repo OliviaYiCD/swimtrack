@@ -11,7 +11,7 @@ export default async function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1216]/80 backdrop-blur">
-      <div className="mx-auto max-w-2xl px-4 py-3 flex items-center justify-between">
+      <div className="mx-auto max-w-[1024px] px-4 py-3 flex items-center justify-between">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 text-white font-semibold">
           <span className="text-xl">🏊‍♂️</span>
