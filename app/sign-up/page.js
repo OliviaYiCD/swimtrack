@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function SignUpPage() {
@@ -11,15 +12,15 @@ export default function SignUpPage() {
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
   const callbackUrl = useMemo(() => `${siteUrl}/auth/callback?next=/`, [siteUrl]);
 
-  // local state for email signup
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  // If a session is ever created immediately, still land at homepage
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         await fetch("/auth/callback", { method: "POST" });
         window.location.assign("/");
@@ -28,7 +29,6 @@ export default function SignUpPage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  // Google SSO (unchanged)
   const handleGoogle = async () => {
     setErr("");
     const { error } = await supabase.auth.signInWithOAuth({
@@ -41,7 +41,6 @@ export default function SignUpPage() {
     if (error) setErr(error.message);
   };
 
-  // Custom email sign-up → always send to /welcome
   const handleEmailSignUp = async (e) => {
     e.preventDefault();
     setErr("");
@@ -51,11 +50,10 @@ export default function SignUpPage() {
         email,
         password,
         options: {
-          emailRedirectTo: callbackUrl, // if you re-enable confirmation later
+          emailRedirectTo: callbackUrl,
         },
       });
       if (error) throw error;
-      // Whether or not a session is created, send to congrats page:
       window.location.assign(`/welcome?email=${encodeURIComponent(email)}`);
     } catch (e) {
       setErr(e?.message ?? "Sign up failed");
@@ -78,7 +76,7 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        {/* Google button (same style as your sign-in page) */}
+        {/* Google sign-up */}
         <button
           onClick={handleGoogle}
           className="w-full flex items-center justify-center gap-3 bg-white text-[#3c4043] rounded-xl border border-[#dadce0] px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -98,7 +96,7 @@ export default function SignUpPage() {
           <div className="h-px flex-1 bg-white/10" />
         </div>
 
-        {/* Email sign-up (custom, so we can redirect to /welcome) */}
+        {/* Email form */}
         <form onSubmit={handleEmailSignUp} className="space-y-3 text-white">
           <label className="block text-sm text-white/80">
             Email address
@@ -108,10 +106,11 @@ export default function SignUpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 text-sm placeholder:text-white/40
+              className="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 text-sm placeholder:text-white/40 
                          focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/40"
             />
           </label>
+
           <label className="block text-sm text-white/80">
             Create a Password
             <input
@@ -120,7 +119,7 @@ export default function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 text-sm placeholder:text-white/40
+              className="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 text-sm placeholder:text-white/40 
                          focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/40"
             />
           </label>
@@ -136,7 +135,15 @@ export default function SignUpPage() {
           {err && <p className="text-red-300 text-sm">{err}</p>}
         </form>
 
-        <p className="text-center text-white/60 text-sm mt-4">
+        {/* Terms notice */}
+        <p className="text-center text-xs text-white/50 mt-4">
+          By creating an account, you agree to our{" "}
+          <Link href="/terms" className="text-blue-300 hover:text-blue-200">Terms & Conditions</Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-blue-300 hover:text-blue-200">Privacy Policy</Link>.
+        </p>
+
+        <p className="text-center text-white/60 text-sm mt-5">
           Already have an account?{" "}
           <a href="/sign-in" className="text-blue-300 hover:text-blue-200 font-medium">
             Sign in
