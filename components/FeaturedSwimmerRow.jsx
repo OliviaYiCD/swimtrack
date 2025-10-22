@@ -14,6 +14,10 @@ export default function FeaturedSwimmerRow({ swimmer, isSaved, isAuthed }) {
     swimmer.age_years !== undefined &&
     String(swimmer.age_years) !== "";
 
+  // 🔵 Club support (common column names: club or club_name)
+  const club = (swimmer.club ?? swimmer.club_name ?? "").trim();
+  const hasClub = club.length > 0;
+
   return (
     <li className="rounded-2xl border border-white/10 bg-[#0f1a20] p-4">
       {/* 👉 Stack on mobile, row on >=sm */}
@@ -25,20 +29,33 @@ export default function FeaturedSwimmerRow({ swimmer, isSaved, isAuthed }) {
           </div>
           <div className="min-w-0">
             <div className="text-white font-medium truncate">{swimmer.full_name}</div>
-            <div className="text-white/60 text-[13px] mt-0.5 flex items-center gap-2">
+
+            {/* Meta line: gender • age • club */}
+            <div className="text-white/60 text-[13px] mt-0.5 flex items-center gap-2 min-w-0">
               {gender ? (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 shrink-0">
                   <span aria-hidden>{gender === "Female" ? "♀" : "♂"}</span>
                   <span>{gender}</span>
                 </span>
               ) : null}
-              {hasAge ? (
+
+              {hasAge && (
                 <>
-                  {gender ? <span>•</span> : null}
-                  <span>Age {Number(swimmer.age_years)}</span>
+                  {gender ? <span className="shrink-0">•</span> : null}
+                  <span className="shrink-0">Age {Number(swimmer.age_years)}</span>
                 </>
-              ) : null}
-              {!gender && !hasAge ? <span>—</span> : null}
+              )}
+
+              {hasClub && (
+                <>
+                  {(gender || hasAge) ? <span className="shrink-0">•</span> : null}
+                  <span className="truncate" title={club}>
+                    {club}
+                  </span>
+                </>
+              )}
+
+              {!gender && !hasAge && !hasClub ? <span>—</span> : null}
             </div>
           </div>
         </div>
@@ -55,14 +72,14 @@ export default function FeaturedSwimmerRow({ swimmer, isSaved, isAuthed }) {
             </Link>
 
             {isAuthed ? (
-            <SaveButton
-            swimmerId={swimmer.id}
-            initiallySaved={isSaved}
-            variant="pill"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-sm"
-          />
+              <SaveButton
+                swimmerId={swimmer.id}
+                initiallySaved={isSaved}
+                variant="pill"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-sm"
+              />
             ) : (
-                <Link
+              <Link
                 href="/sign-in"
                 className="rounded-full bg-[#0b3a5e] hover:bg-[#0d4b79] px-4 py-2 text-sm text-white w-full sm:w-auto flex justify-center items-center gap-1 text-center"
               >

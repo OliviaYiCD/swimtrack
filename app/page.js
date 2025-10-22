@@ -80,7 +80,7 @@ export default async function Home({ searchParams }) {
       // -------------------------
       // SEARCH / FILTER MODE ONLY
       // -------------------------
-      let query = supabase.from("swimmers_v2").select("id, full_name, gender, age_years");
+      let query = supabase.from("swimmers_v2").select("id, full_name, gender, age_years, club");
 
       if (hasQuery) query = query.ilike("full_name", `%${q}%`);
 
@@ -150,7 +150,7 @@ export default async function Home({ searchParams }) {
       if (featuredIds.length) {
         const { data, error } = await supabase
           .from("swimmers_v2")
-          .select("id, full_name, gender, age_years")
+          .select("id, full_name, gender, age_years, club")
           .in("id", featuredIds);
 
         const rows = Array.isArray(data) ? data : [];

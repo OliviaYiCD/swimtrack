@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import clsx from "clsx";
 import PerformanceChart from "./PerformanceChart";
+import Link from "next/link";
 
 const STROKE_LABEL = { FR: "Freestyle", BK: "Backstroke", BR: "Breaststroke", FL: "Butterfly", IM: "Individual Medley" };
 
@@ -252,13 +253,16 @@ export default function CompetitorsPanel({ swimmerId }) {
           }
 
           return (
-            <div
+            <Link
+              href={`/swimmers/${r.swimmer_id}`}
+              prefetch={false}
               key={r.swimmer_id}
               className={clsx(
-                "rounded-2xl border px-3 py-3 sm:px-4 sm:py-4 transition-colors duration-200 overflow-hidden",
+                "block rounded-2xl border px-3 py-3 sm:px-4 sm:py-4 transition-all duration-200 overflow-hidden",
+                "hover:-translate-y-[1px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
                 isMe
                   ? "bg-[#14355b] border-[#3b82f6]/40 shadow-[0_0_10px_rgba(59,130,246,0.25)]"
-                  : "bg-[#0f1a20] border-white/10"
+                  : "bg-[#0f1a20] border-white/10 hover:ring-2 hover:ring-white/15"
               )}
             >
               <div className="flex items-center gap-3">
@@ -273,7 +277,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                 >
                   {rank}
                 </div>
-
+          
                 {/* Initials */}
                 <div
                   className={clsx(
@@ -288,7 +292,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                 >
                   {initials(r.full_name)}
                 </div>
-
+          
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2 sm:gap-3">
                     <div className="min-w-0">
@@ -300,7 +304,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                         {r.club_name ? ` • ${r.club_name}` : ""}
                       </div>
                     </div>
-
+          
                     <div className="text-right">
                       <div className="flex items-center gap-1.5 sm:gap-2 text-[16px] sm:text-[18px] font-bold">
                         <span className="text-[10px] sm:text-[11px] font-semibold text-green-300 bg-green-400/15 border border-green-400/30 rounded-full px-1.5 py-[1px] sm:px-2 sm:py-[2px]">
@@ -311,7 +315,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                       <div className={clsx("text-[11px] sm:text-[12px]", deltaColor)}>{deltaText}</div>
                     </div>
                   </div>
-
+          
                   {(r.meet_name || isMe) && (
                     <div className="mt-1.5 sm:mt-2 text-[11px] sm:text-[12px] text-white/50">
                       {r.meet_name || ""}
@@ -324,7 +328,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                   )}
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

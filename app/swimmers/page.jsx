@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { getSupabaseServer } from "../../lib/supabaseServer";
 import AvatarInitial from "../../components/AvatarInitial";
-import SaveButton from "../../components/SaveButton";
+ import SaveButton from "../../components/SaveButton";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,7 @@ export default async function SwimmerPage({ params }) {
   // ----- Swimmer core -----
   const { data: swimmer, error: swimmerErr } = await supabase
     .from("swimmers_v2")
-    .select("id, full_name, gender, age_years")
+    .select("id, full_name, gender, age_years, club")
     .eq("id", id)
     .single();
 

@@ -96,7 +96,7 @@ export default async function SwimmerPage({ params, searchParams }) {
 
   const { data: swimmer, error: swimmerErr } = await supabase
     .from("swimmers_v2")
-    .select("id, full_name, gender, age_years")
+    .select("id, full_name, gender, age_years, club")
     .eq("id", id)
     .single();
 
@@ -216,17 +216,19 @@ export default async function SwimmerPage({ params, searchParams }) {
         <h1 className="text-[22px] sm:text-[24px] font-bold text-white mb-2 tracking-wide">
           {swimmer.full_name}
         </h1>
-        <p className="text-white/70 text-[14px]">
-          {swimmer.age_years != null ? `Age ${swimmer.age_years}` : "Age —"} •{" "}
-          {swimmer.gender
-            ? swimmer.gender.toLowerCase() === "female"
-              ? "Female"
-              : "Male"
-            : "—"}
-        </p>
-        {clubName && (
-          <p className="text-white/50 text-[13px] mt-1">Team: {clubName}</p>
-        )}
+        {(() => {
+      const g = (swimmer.gender || "").toString().toLowerCase();
+          const gender = g === "female" || g === "f" ? "Female" : g ? "Male" : "—";
+         const age = swimmer.age_years != null ? `Age ${swimmer.age_years}` : "Age —";
+         const club = (swimmer.club?.trim() || clubName || "").trim();
+         const parts = [age, gender];
+          if (club) parts.push(club); // add club next to gender
+         return (
+           <p className="text-white/70 text-[14px]">
+             {parts.join(" • ")}
+           </p>
+         );
+       })()}
 
         <div className="mt-4 flex justify-center">
           <SavedToggle swimmerId={swimmer.id} initiallySaved={initiallySaved} />
