@@ -2,6 +2,7 @@
 import Link from "next/link";
 import MobileMenu from "./MobileMenu";
 import { getSupabaseServer } from "../lib/supabaseServer";
+import Image from "next/image";
 
 export default async function Header() {
   const supabase = await getSupabaseServer();
@@ -10,12 +11,18 @@ export default async function Header() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1216]/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-surface backdrop-blur">
       <div className="mx-auto max-w-[1024px] px-4 py-3 flex items-center justify-between">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 text-white font-semibold">
-          <span className="text-xl">🏊‍♂️</span>
-          <span className="tracking-wide">SwimTrack</span>
+        <Image
+          src="/SwimTrack.png"
+          alt="SwimTrack Logo"
+          width={200}
+          height={50}
+          className="rounded-md"
+        />
+          <span className="sr-only">SwimTrack</span>
         </Link>
 
         {/* Desktop actions */}

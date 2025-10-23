@@ -17,7 +17,7 @@ export default async function SavedSwimmersSection() {
           <h2 className="text-[18px] font-semibold">My saved swimmers</h2>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[#0f1a20] p-5 sm:p-6">
+        <div className="rounded-2xl border border-white/10 bg-surface p-5 sm:p-6">
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 shrink-0 rounded-full bg-blue-500/20 text-blue-300 grid place-items-center text-lg font-bold">
               ★

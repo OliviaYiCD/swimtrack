@@ -19,8 +19,7 @@ export default function FeaturedSwimmerRow({ swimmer, isSaved, isAuthed }) {
   const hasClub = club.length > 0;
 
   return (
-    <li className="rounded-2xl border border-white/10 bg-[#0f1a20] p-4">
-      {/* 👉 Stack on mobile, row on >=sm */}
+    <li className="rounded-2xl border border-white/10 bg-surface p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Left: avatar + text */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -62,7 +61,6 @@ export default function FeaturedSwimmerRow({ swimmer, isSaved, isAuthed }) {
 
         {/* Right: actions */}
         <div className="w-full sm:w-auto sm:flex-shrink-0 sm:flex-grow-0">
-          {/* 👉 Mobile: 2-col grid (50/50). Desktop: inline pills */}
           <div className="grid grid-cols-2 gap-2 w-full sm:grid-cols-1 sm:flex sm:items-center sm:gap-2 sm:w-auto mt-2 sm:mt-0">
             <Link
               href={`/swimmers/${swimmer.id}`}
@@ -81,7 +79,10 @@ export default function FeaturedSwimmerRow({ swimmer, isSaved, isAuthed }) {
             ) : (
               <Link
                 href="/sign-in"
-                className="rounded-full bg-[#0b3a5e] hover:bg-[#0d4b79] px-4 py-2 text-sm text-white w-full sm:w-auto flex justify-center items-center gap-1 text-center"
+                className="rounded-full bg-[#0baa95] hover:bg-[#089783] active:bg-[#078373]
+                           px-4 py-2 text-sm text-white w-full sm:w-auto
+                           flex justify-center items-center gap-1 text-center
+                           transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11b5a1]/60"
               >
                 + Save
               </Link>

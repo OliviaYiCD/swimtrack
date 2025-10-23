@@ -7,10 +7,10 @@ import clsx from "clsx";
 export default function SaveButton({
   swimmerId,
   initiallySaved = false,
-  variant = "link",       // "link" | "pill"
+  variant = "link", // "link" | "pill"
   className,
-  label,                  // optional: override label
-  onSaved,                // optional callback after saving
+  label,
+  onSaved,
 }) {
   const [saved, setSaved] = useState(initiallySaved);
   const [isPending, startTransition] = useTransition();
@@ -26,7 +26,6 @@ export default function SaveButton({
         });
 
         if (!res.ok) {
-          // --- minimal improvement: if unauthenticated, send to sign-in ---
           let txt = "";
           try { txt = await res.text(); } catch {}
           const unauth =
@@ -39,8 +38,8 @@ export default function SaveButton({
               typeof window !== "undefined"
                 ? window.location.pathname + window.location.search
                 : "/";
-            // redirect to your sign-in page with return url
-            window.location.href = `/signin?next=${encodeURIComponent(next)}`;
+            // your sign-in route is /sign-in
+            window.location.href = `/sign-in?next=${encodeURIComponent(next)}`;
             return;
           }
 
@@ -49,29 +48,37 @@ export default function SaveButton({
         }
 
         setSaved(true);
-        onSaved?.(); // notify parent wrapper if provided
+        onSaved?.();
       } catch (e) {
         console.error("Save failed:", e);
       }
     });
 
+  // --- Saved state (keeps a soft teal look) ---
   if (saved) {
     if (variant === "pill") {
       return (
-        <span className="flex items-center gap-2 rounded-full bg-[#1c3f24] text-green-300 px-4 py-2 text-sm">
-          <svg width="16" height="16" viewBox="0 0 24 24" className="text-green-300">
+        <span className="flex items-center gap-2 rounded-full bg-[#0f3b37] text-[#7ae6d6] px-4 py-2 text-sm ring-1 ring-[#157b6f]/30">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="text-[#7ae6d6]">
             <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
           Saved
         </span>
       );
     }
-    return <span className="text-green-400">Saved ✓</span>;
+    return <span className="text-[#11b5a1]">Saved ✓</span>;
   }
 
+  // --- Teal styles ---
   const pillClasses =
-    "flex items-center gap-2 rounded-full bg-[#0b3a5e] text-white px-4 py-2 text-sm hover:bg-[#0d4b79] transition disabled:opacity-50";
-  const linkClasses = "text-blue-400 hover:underline disabled:opacity-50";
+    "flex items-center gap-2 rounded-full bg-[#0baa95] text-white px-4 py-2 text-sm " +
+    "hover:bg-[#089783] active:bg-[#078373] transition " +
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11b5a1]/60 " +
+    "disabled:opacity-60 disabled:cursor-not-allowed";
+
+  const linkClasses =
+    "text-[#11b5a1] hover:text-[#0baa95] underline-offset-2 hover:underline disabled:opacity-60";
+
   const content = label ?? "Save";
 
   return (

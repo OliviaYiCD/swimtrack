@@ -6,6 +6,7 @@ import SearchBar from "../components/SearchBar";
 import SaveButton from "../components/SaveButton";
 import SavedSwimmersSection from "../components/SavedSwimmersSection";
 import FeaturedSwimmerRow from "../components/FeaturedSwimmerRow";
+import LatestEvents from "../components/LatestEvents";
 
 export const dynamic = "force-dynamic";
 
@@ -206,21 +207,22 @@ export default async function Home({ searchParams }) {
 
   return (
     <main className="mx-auto max-w-md px-4 py-6 sm:max-w-2xl">
-      {/* Hero / Search */}
-      <section className="rounded-3xl bg-gradient-to-b from-[#0b1a23] to-[#0f1a20] border border-white/10 p-8 text-center mb-8 shadow-[0_0_20px_rgba(0,0,0,0.3)]">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#0b3a5e] to-[#0e5d8c] text-3xl">
-          🏊‍♂️
-        </div>
-        <h1 className="text-[22px] sm:text-[24px] font-bold text-white mb-2 tracking-wide">
-          Find your swimmer
-        </h1>
-        <p className="text-white/60 text-[14px] max-w-sm mx-auto mb-6 leading-relaxed">
-          Search by name to find swimmers and track their progress.
-        </p>
-        <div className="max-w-md mx-auto">
-          <SearchBar defaultValue={q} placeholder="Search swimmers..." className="mb-0" />
-        </div>
-      </section>
+{/* Hero / Search */}
+<section className="mx-auto max-w-[1024px] px-4 pt-4 pb-2 text-center">
+  <h1 className="text-[26px] sm:text-[28px] font-bold text-white mb-2 tracking-wide">
+    Find your swimmer
+  </h1>
+  <p className="text-white/65 text-[14px] mb-5">
+    Search by name to find swimmers and track their progress.
+  </p>
+  <div className="-mx-4 mt-4">
+  {/* One clean field, no extra wrapper borders */}
+  <SearchBar
+    defaultValue={q}
+    placeholder="Search swimmers..."
+    className="w-full"
+  /></div>
+</section>
 
       {listError && (
         <p className="text-red-400 text-sm mb-3">
@@ -406,32 +408,8 @@ export default async function Home({ searchParams }) {
         <span className="text-[12px] text-white/40">Most recent meets</span>
       </div>
 
-      <ul className="space-y-2">
-        {latestMeets.map((m) => (
-          <li
-            key={m.id}
-            className="rounded-2xl bg-[#0f1a20] border border-white/10 px-4 py-3"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-medium truncate">{m.name}</div>
-                <div className="text-white/60 text-[13px] mt-[2px]">
-                  {formatDate(m.start_date)}
-                  {m.location ? ` • ${m.location}` : ""}
-                </div>
-              </div>
-              {m.course && (
-                <span className="shrink-0 text-[12px] px-2 py-[2px] rounded-full bg-white/8 text-white/70">
-                  {m.course}
-                </span>
-              )}
-            </div>
-          </li>
-        ))}
-        {latestMeets.length === 0 && (
-          <li className="text-white/60 text-sm">No recent meets.</li>
-        )}
-      </ul>
+    {/* Latest events */}
+<LatestEvents limit={5} />
     </main>
   );
 }
