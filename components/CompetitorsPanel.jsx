@@ -7,7 +7,13 @@ import clsx from "clsx";
 import PerformanceChart from "./PerformanceChart";
 import Link from "next/link";
 
-const STROKE_LABEL = { FR: "Freestyle", BK: "Backstroke", BR: "Breaststroke", FL: "Butterfly", IM: "Individual Medley" };
+const STROKE_LABEL = {
+  FR: "Freestyle",
+  BK: "Backstroke",
+  BR: "Breaststroke",
+  FL: "Butterfly",
+  IM: "Individual Medley",
+};
 
 function formatMs(ms) {
   if (ms == null) return "—";
@@ -15,11 +21,32 @@ function formatMs(ms) {
   const m = Math.floor(t / 60000);
   const s = Math.floor((t % 60000) / 1000);
   const cs = Math.floor((t % 1000) / 10);
-  return m > 0 ? `${m}:${String(s).padStart(2,"0")}.${String(cs).padStart(2,"0")}` : `${s}.${String(cs).padStart(2,"0")}s`;
+  return m > 0
+    ? `${m}:${String(s).padStart(2, "0")}.${String(cs).padStart(2, "0")}`
+    : `${s}.${String(cs).padStart(2, "0")}s`;
 }
+
+function formatDate(d) {
+  if (!d) return "";
+  try {
+    return new Date(d).toLocaleDateString("en-AU", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  } catch {
+    return String(d);
+  }
+}
+
 function ageGenderText(age, gender) {
   const g = (gender || "").toLowerCase();
-  const gLabel = g === "f" || g === "female" ? "Female" : g === "m" || g === "male" ? "Male" : g || "—";
+  const gLabel =
+    g === "f" || g === "female"
+      ? "Female"
+      : g === "m" || g === "male"
+      ? "Male"
+      : g || "—";
   return `Age ${age ?? "—"}, ${gLabel}`;
 }
 function rankBadgeClass(rank) {
@@ -29,7 +56,13 @@ function rankBadgeClass(rank) {
   return "from-white/15 to-white/5 text-white ring-1 ring-white/15";
 }
 function initials(name = "") {
-  return name.trim().split(/\s+/).slice(0,2).map(p => p[0] || "").join("").toUpperCase();
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0] || "")
+    .join("")
+    .toUpperCase();
 }
 
 export default function CompetitorsPanel({ swimmerId }) {
@@ -73,7 +106,9 @@ export default function CompetitorsPanel({ swimmerId }) {
       setEvents(opts);
       if (!specId && opts.length) setSpecId(opts[0].spec_id);
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [swimmerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -117,7 +152,11 @@ export default function CompetitorsPanel({ swimmerId }) {
       const nameMap = new Map(names.map((n) => [n.id, n]));
 
       const meetIds = Array.from(
-        new Set(Array.from(bestBySwimmer.values()).map((v) => v.meet_id).filter(Boolean))
+        new Set(
+          Array.from(bestBySwimmer.values())
+            .map((v) => v.meet_id)
+            .filter(Boolean)
+        )
       );
       const { data: meets = [] } = await supabase
         .from("meets_v2")
@@ -137,6 +176,7 @@ export default function CompetitorsPanel({ swimmerId }) {
           time_text: r.time_text,
           club_name: r.club || "",
           meet_name: r.meet_id ? meetMap.get(r.meet_id) : "",
+          start_date: r.start_date || null, // ⬅ carry date through
         };
       });
 
@@ -158,7 +198,9 @@ export default function CompetitorsPanel({ swimmerId }) {
       setRows(rowsWithDelta);
       setLoading(false);
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [me, specId, supabase]);
 
   const selectedTitle = useMemo(
@@ -183,7 +225,6 @@ export default function CompetitorsPanel({ swimmerId }) {
   );
 
   return (
-    // 🔒 Constrain the whole panel on mobile
     <div className="space-y-4 mx-auto w-full max-w-[420px] sm:max-w-none">
       {/* Event Selector */}
       <div className="space-y-2 mt-3">
@@ -248,8 +289,13 @@ export default function CompetitorsPanel({ swimmerId }) {
           let deltaColor = "text-white/60";
           if (r.delta != null) {
             if (r.delta === 0) deltaText = "—";
-            else if (r.delta > 0) { deltaText = `+${r.delta.toFixed(2)}s`; deltaColor = "text-red-300"; }
-            else { deltaText = `${r.delta.toFixed(2)}s`; deltaColor = "text-green-300"; }
+            else if (r.delta > 0) {
+              deltaText = `+${r.delta.toFixed(2)}s`;
+              deltaColor = "text-red-300";
+            } else {
+              deltaText = `${r.delta.toFixed(2)}s`;
+              deltaColor = "text-green-300";
+            }
           }
 
           return (
@@ -277,7 +323,7 @@ export default function CompetitorsPanel({ swimmerId }) {
                 >
                   {rank}
                 </div>
-          
+
                 {/* Initials */}
                 <div
                   className={clsx(
@@ -292,19 +338,25 @@ export default function CompetitorsPanel({ swimmerId }) {
                 >
                   {initials(r.full_name)}
                 </div>
-          
+
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2 sm:gap-3">
                     <div className="min-w-0">
-                      <div className={clsx("font-semibold truncate", isMe ? "text-purple-300" : "text-white")}>
-                        {r.full_name}{isMe ? " (You)" : ""}
+                      <div
+                        className={clsx(
+                          "font-semibold truncate",
+                          isMe ? "text-purple-300" : "text-white"
+                        )}
+                      >
+                        {r.full_name}
+                        {isMe ? " (You)" : ""}
                       </div>
                       <div className="text-white/50 text-[12px] sm:text-[13px]">
                         {ageGenderText(r.age_years, r.gender)}
                         {r.club_name ? ` • ${r.club_name}` : ""}
                       </div>
                     </div>
-          
+
                     <div className="text-right">
                       <div className="flex items-center gap-1.5 sm:gap-2 text-[16px] sm:text-[18px] font-bold">
                         <span className="text-[10px] sm:text-[11px] font-semibold text-green-300 bg-green-400/15 border border-green-400/30 rounded-full px-1.5 py-[1px] sm:px-2 sm:py-[2px]">
@@ -312,12 +364,16 @@ export default function CompetitorsPanel({ swimmerId }) {
                         </span>
                         <span>{r.time_text || formatMs(r.time_ms)}</span>
                       </div>
-                      <div className={clsx("text-[11px] sm:text-[12px]", deltaColor)}>{deltaText}</div>
+                      <div className={clsx("text-[11px] sm:text-[12px]", deltaColor)}>
+                        {deltaText}
+                      </div>
                     </div>
                   </div>
-          
+
                   {(r.meet_name || isMe) && (
                     <div className="mt-1.5 sm:mt-2 text-[11px] sm:text-[12px] text-white/50">
+                      {/* ⬇ NEW: date • meet */}
+                      {(r.start_date ? `${formatDate(r.start_date)}${r.meet_name ? " • " : ""}` : "")}
                       {r.meet_name || ""}
                       {isMe && rows[0]?.swimmer_id === r.swimmer_id && (
                         <span className="ml-1.5 sm:ml-2 inline-block rounded-full bg-white/8 px-1.5 py-[1px] sm:px-2 sm:py-[2px] text-white/70">

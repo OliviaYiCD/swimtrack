@@ -198,8 +198,8 @@ export default async function SwimmerPage({ params, searchParams }) {
   const specTitle = (specId) => {
     const s = specMap.get(specId);
     if (!s) return "—";
-    const dist = s?.distance_m != null ? `${s.distance_m}m` : "";
-    const stroke = s?.stroke ? STROKE_LABEL[s.stroke] || s.stroke : "";
+    const dist = s.distance_m != null ? `${s.distance_m}m` : "";
+    const stroke = s.stroke ? (STROKE_LABEL[s.stroke] || s.stroke) : "";
     return [dist, stroke].filter(Boolean).join(" ");
   };
 
@@ -217,18 +217,14 @@ export default async function SwimmerPage({ params, searchParams }) {
           {swimmer.full_name}
         </h1>
         {(() => {
-      const g = (swimmer.gender || "").toString().toLowerCase();
+          const g = (swimmer.gender || "").toString().toLowerCase();
           const gender = g === "female" || g === "f" ? "Female" : g ? "Male" : "—";
-         const age = swimmer.age_years != null ? `Age ${swimmer.age_years}` : "Age —";
-         const club = (swimmer.club?.trim() || clubName || "").trim();
-         const parts = [age, gender];
-          if (club) parts.push(club); // add club next to gender
-         return (
-           <p className="text-white/70 text-[14px]">
-             {parts.join(" • ")}
-           </p>
-         );
-       })()}
+          const age = swimmer.age_years != null ? `Age ${swimmer.age_years}` : "Age —";
+          const club = (swimmer.club?.trim() || clubName || "").trim();
+          const parts = [age, gender];
+          if (club) parts.push(club);
+          return <p className="text-white/70 text-[14px]">{parts.join(" • ")}</p>;
+        })()}
 
         <div className="mt-4 flex justify-center">
           <SavedToggle swimmerId={swimmer.id} initiallySaved={initiallySaved} />
@@ -262,24 +258,20 @@ export default async function SwimmerPage({ params, searchParams }) {
       {/* Content */}
       {showCompetitors ? (
         <div className="mt-4">
-          {/* The chart will now render INSIDE CompetitorsPanel, right below the event picker */}
           <CompetitorsPanel swimmerId={id} />
         </div>
       ) : (
         <>
           {/* Personal Bests */}
-          <h2 className="text-[16px] font-semibold tracking-wide mb-3">
-            Personal Bests
-          </h2>
+          <h2 className="text-[16px] font-semibold tracking-wide mb-3">Personal Bests</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
             {bestRows.length === 0 ? (
               <div className="text-white/60 text-sm">No personal bests yet.</div>
             ) : (
               bestRows.map((r, idx) => {
                 const sTitle = specTitle(r.spec_id);
-                const meetName = r.meet_id
-                  ? meetMap.get(r.meet_id)?.name || ""
-                  : "";
+                const meetName = r.meet_id ? meetMap.get(r.meet_id)?.name || "" : "";
+                const when = formatDate(r.start_date);
                 const time = r.time_text || formatMs(r.time_ms);
                 return (
                   <div
@@ -288,15 +280,13 @@ export default async function SwimmerPage({ params, searchParams }) {
                   >
                     <div className="text-white/80 text-[13px]">{sTitle}</div>
                     <div className="mt-2 flex items-center gap-2">
-                      <div className="text-[22px] font-bold tracking-wide">
-                        {time || "—"}
-                      </div>
+                      <div className="text-[22px] font-bold tracking-wide">{time || "—"}</div>
                       <span className="text-[11px] font-semibold text-green-300 bg-green-500/20 rounded-full px-2 py-[2px]">
                         PB
                       </span>
                     </div>
                     <div className="text-white/50 text-[12px] mt-2">
-                      {meetName || "—"}
+                      {when ? `${when}${meetName ? ` • ${meetName}` : ""}` : meetName || "—"}
                     </div>
                   </div>
                 );
@@ -305,9 +295,7 @@ export default async function SwimmerPage({ params, searchParams }) {
           </div>
 
           {/* Recent results */}
-          <h2 className="text-[16px] font-semibold tracking-wide mb-3">
-            Recent results
-          </h2>
+          <h2 className="text-[16px] font-semibold tracking-wide mb-3">Recent results</h2>
           <ul className="space-y-3">
             {recent.length === 0 ? (
               <li className="text-white/60 text-sm">No recent results.</li>
@@ -317,17 +305,13 @@ export default async function SwimmerPage({ params, searchParams }) {
                 const when = formatDate(r.start_date);
                 const rk = rankText(r.place);
                 const title = (() => {
-                  // build from spec map
                   const s = specMap.get(r.spec_id);
                   if (!s) return "—";
                   const dist = s?.distance_m != null ? `${s.distance_m}m` : "";
                   const stroke = s?.stroke ? STROKE_LABEL[s.stroke] || s.stroke : "";
                   return [dist, stroke].filter(Boolean).join(" ");
                 })();
-                const meetName = r.meet_id
-                  ? meetMap.get(r.meet_id)?.name || ""
-                  : "";
-
+                const meetName = r.meet_id ? meetMap.get(r.meet_id)?.name || "" : "";
                 const best = bestRows.find((b) => b.spec_id === r.spec_id);
                 const isPB = best && best.time_ms === r.time_ms;
 
@@ -353,11 +337,7 @@ export default async function SwimmerPage({ params, searchParams }) {
                           )}
                           <span>{time || "—"}</span>
                         </div>
-                        {rk && (
-                          <div className="text-[12px] text-blue-300 mt-[2px]">
-                            Rank: {rk}
-                          </div>
-                        )}
+                        {rk && <div className="text-[12px] text-blue-300 mt-[2px]">Rank: {rk}</div>}
                       </div>
                     </div>
                   </li>
